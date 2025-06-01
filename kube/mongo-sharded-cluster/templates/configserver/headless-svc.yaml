@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.configServer.headlessServiceName }}
+  labels:
+    app: {{ .Values.configServer.name }}
+spec:
+  ports:
+    - port: {{ .Values.configServer.port }}
+      name: mongo
+  clusterIP: None
+  selector:
+    app: {{ .Values.configServer.name }}

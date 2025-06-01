@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.mongos.name }}
+  labels:
+    app: {{ .Values.mongos.name }}
+spec:
+  type: {{ .Values.mongos.service.type }}
+  ports:
+    - port: {{ .Values.mongos.port }}
+      targetPort: {{ .Values.mongos.port }}
+      name: mongo
+{{- if eq .Values.mongos.service.type "NodePort" }}
+      nodePort: {{ .Values.mongos.service.nodePort }}
+{{- end }}
+  selector:
+    app: {{ .Values.mongos.name }}

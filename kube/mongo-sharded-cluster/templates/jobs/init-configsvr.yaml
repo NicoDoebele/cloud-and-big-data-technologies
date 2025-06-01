@@ -1,0 +1,69 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "mongodb.fullname" . }}-init-configsvr
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: mongo-admin-secret
+          secret:
+            secretName: mongo-cluster-admin-password
+      initContainers:
+        - name: wait-for-last-configsvr
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          volumeMounts:
+            - name: mongo-admin-secret
+              mountPath: "/etc/mongo-secret"
+              readOnly: true
+          command:
+            - bash
+            - -c
+            - |
+              last_index=$(({{ .Values.replicaCount.configServers }} - 1))
+              last_host="mongo-csrs-${last_index}.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}"
+              until mongosh --quiet --host ${last_host} --eval "db.runCommand('ping')" > /dev/null 2>&1; do
+                sleep 5
+              done
+      containers:
+        - name: init-configsvr
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          volumeMounts:
+            - name: mongo-admin-secret
+              mountPath: "/etc/mongo-secret"
+              readOnly: true
+          command:
+            - bash
+            - -c
+            - |
+              HOST="mongo-csrs-0.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}"
+              USERNAME=$(cat /etc/mongo-secret/username)
+              PASSWORD=$(cat /etc/mongo-secret/password)
+              
+              mongosh --host $HOST --quiet --eval '
+                try {
+                  const status = rs.status();
+                  if (status && status.ok === 1) {
+                    exit(0);
+                  }
+                } catch (err) {
+                  print("Initializing replica set...");
+                }
+                
+                rs.initiate({
+                  _id: "{{ $.Values.configServer.replicaSetName }}",
+                  configsvr: true,
+                  members: [
+                    {{- $n := int $.Values.replicaCount.configServers }}
+                    {{- range $i, $_ := until $n }}
+                      { _id: {{ $i }}, host: "mongo-csrs-{{ $i }}.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}" }{{- if lt $i (sub $n 1) }},{{ end }}
+                    {{- end }}
+                  ]
+                });
+              '

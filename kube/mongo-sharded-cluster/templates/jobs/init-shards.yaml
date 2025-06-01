@@ -1,0 +1,73 @@
+{{- $clusters := int .Values.sharding.clusterCount }}
+{{- $replicas := int .Values.sharding.replicasPerCluster }}
+{{- range $i, $_ := until $clusters }}
+{{- $idx := add1 $i }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "mongodb.fullname" $ }}-init-shard-{{ $idx }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "2"
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: mongo-admin-secret
+          secret:
+            secretName: mongo-cluster-admin-password
+      initContainers:
+        - name: wait-for-last-shard
+          image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
+          volumeMounts:
+            - name: mongo-admin-secret
+              mountPath: "/etc/mongo-secret"
+              readOnly: true
+          command:
+            - bash
+            - -c
+            - |
+              last_index=$(({{ $.Values.sharding.replicasPerCluster }} - 1))
+              last_host="mongo-shard{{ $idx }}-${last_index}.{{ printf "%s%d-headless" $.Values.sharding.baseName $idx }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.sharding.port }}"
+              until mongosh --quiet --host ${last_host} --eval "db.runCommand('ping')" > /dev/null 2>&1; do
+                sleep 5
+              done
+      containers:
+        - name: init-shard
+          image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
+          volumeMounts:
+            - name: mongo-admin-secret
+              mountPath: "/etc/mongo-secret"
+              readOnly: true
+          command:
+            - bash
+            - -c
+            - |
+              HOST="mongo-shard{{ $idx }}-0.{{ printf "%s%d-headless" $.Values.sharding.baseName $idx }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.sharding.port }}"
+              USERNAME=$(cat /etc/mongo-secret/username)
+              PASSWORD=$(cat /etc/mongo-secret/password)
+              
+              mongosh --host $HOST --quiet --eval '
+                try {
+                  const status = rs.status();
+                  if (status && status.ok === 1) {
+                    exit(0);
+                  }
+                } catch (err) {
+                  print("Initializing replica set...");
+                }
+                
+                rs.initiate({
+                  _id: "{{ printf "%s%d" $.Values.sharding.replicaSetBaseName $idx }}",
+                  members: [
+                    {{- range $j, $_ := until $replicas }}
+                      { _id: {{ $j }}, host: "mongo-shard{{ $idx }}-{{ $j }}.{{ printf "%s%d-headless" $.Values.sharding.baseName $idx }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.sharding.port }}" }{{- if lt $j (sub $replicas 1) }},{{ end }}
+                    {{- end }}
+                  ]
+                });
+              '
+{{- end }}

@@ -1,0 +1,103 @@
+{{- $replicas := int .Values.sharding.replicasPerCluster }}
+{{- $clusters := int .Values.sharding.clusterCount }}
+{{- range $i, $e := until $clusters }}
+{{- $index := add1 $i }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s%d-headless" $.Values.sharding.baseName $index }}
+  labels:
+    app: {{ printf "%s%d" $.Values.sharding.baseName $index }}
+spec:
+  ports:
+    - port: {{ $.Values.sharding.port }}
+      name: mongo
+  clusterIP: None
+  selector:
+    app: {{ printf "%s%d" $.Values.sharding.baseName $index }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ printf "%s%d" $.Values.sharding.baseName $index }}
+spec:
+  serviceName: "{{ printf "%s%d-headless" $.Values.sharding.baseName $index }}"
+  replicas: {{ $replicas }}
+  selector:
+    matchLabels:
+      app: {{ printf "%s%d" $.Values.sharding.baseName $index }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s%d" $.Values.sharding.baseName $index }}
+    spec:
+      terminationGracePeriodSeconds: 10
+      initContainers:
+        - name: wait-for-configsvr
+          image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          command:
+            - bash
+            - -c
+            - |
+              CONFIG_SVR_HOST="mongo-csrs-0.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}"
+
+              MAX_RETRIES=30
+              RETRY_COUNT=0
+              SUCCESS=false
+              until [ $RETRY_COUNT -ge $MAX_RETRIES ]; do
+                RETRY_COUNT=$((RETRY_COUNT+1))
+                if mongosh --quiet --host "$CONFIG_SVR_HOST" --eval 'rs.status().ok' 2>/dev/null | grep -q "1"; then
+                  SUCCESS=true
+                  break
+                fi
+                sleep 10
+              done
+
+              if [ "$SUCCESS" != "true" ]; then
+                exit 1
+              fi
+      containers:
+        - name: mongod-shardsvr
+          image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
+          command:
+            - "mongod"
+            - "--shardsvr"
+            - "--replSet"
+            - "{{ printf "%s%d" $.Values.sharding.replicaSetBaseName $index }}"
+            - "--dbpath"
+            - "/data/db"
+            - "--port"
+            - "{{ $.Values.sharding.port }}"
+            - "--bind_ip_all"
+            #- "--keyFile"
+            #- "/etc/mongo-secrets/mongo-keyfile"
+          ports:
+            - containerPort: {{ $.Values.sharding.port }}
+              name: mongo
+          volumeMounts:
+            - name: mongo-shard-data
+              mountPath: /data/db
+            - name: mongo-keyfile-volume
+              mountPath: /etc/mongo-secrets
+              readOnly: true
+          resources:
+{{- toYaml $.Values.sharding.resources | nindent 12 }}
+      volumes:
+        - name: mongo-keyfile-volume
+          secret:
+            secretName: {{ $.Values.keyfile.existingSecret }}
+            defaultMode: 0400
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-shard-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ $.Values.sharding.storage }}
+{{- if $.Values.sharding.storageClassName }}
+        storageClassName: "{{ $.Values.sharding.storageClassName }}"
+{{- end }}
+{{- end }}

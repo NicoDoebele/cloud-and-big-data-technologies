@@ -1,0 +1,72 @@
+replicaCount:
+  configServers: 2
+  mongos: 2
+
+image:
+  repository: mongo
+  tag: "8.0.9"
+  pullPolicy: IfNotPresent
+
+configServer:
+  name: mongo-csrs
+  headlessServiceName: mongo-csrs-headless
+  replicaSetName: rsConfig
+  port: 27017
+  storage: 5Gi
+  # storageClassName: "storage-class"
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "250m"
+      memory: "512Mi"
+  clusterIpSourceAllowlist: "10.0.0.0/24,192.168.1.0/24"
+
+sharding:
+  clusterCount: 2
+  replicasPerCluster: 2
+  baseName: "mongo-shard"
+  replicaSetBaseName: "rsShard"
+  port: 27017
+  storage: 10Gi
+  # storageClassName: "storage-class"
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "250m"
+      memory: "512Mi"
+  autoConfigure:
+    databaseName: "twutter"
+    collections:
+      - name: "users"
+        shardKey: { "_id": "hashed" }
+      - name: "posts"
+        shardKey: { "_id": "hashed" }
+
+mongos:
+  name: mongo-mongos
+  port: 27017
+  service:
+    type: NodePort
+    nodePort: 30007
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "250m"
+      memory: "512Mi"
+
+keyfile:
+  existingSecret: "mongo-keyfile"
+
+adminUser:
+  existingSecret: "mongo-cluster-admin-password"
+
+# For the mongos command --configdb
+# This will be constructed in the template using loops and helpers
+# Example: rsConfig/mongo-csrs-0.mongo-csrs-headless.default.svc.cluster.local:27017,...
+configDBString: "" # This will be dynamically generated

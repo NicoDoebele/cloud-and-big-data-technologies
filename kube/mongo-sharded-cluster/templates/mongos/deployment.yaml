@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.mongos.name }}
+spec:
+  replicas: {{ .Values.replicaCount.mongos }}
+  selector:
+    matchLabels:
+      app: {{ .Values.mongos.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.mongos.name }}
+    spec:
+      initContainers:
+        - name: wait-for-configsvr
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - bash
+            - -c
+            - |
+              CONFIG_SVR_HOST="mongo-csrs-0.{{ .Values.configServer.headlessServiceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.configServer.port }}"
+
+              MAX_RETRIES=30
+              RETRY_COUNT=0
+              SUCCESS=false
+              until [ $RETRY_COUNT -ge $MAX_RETRIES ]; do
+                RETRY_COUNT=$((RETRY_COUNT+1))
+                if mongosh --quiet --host "$CONFIG_SVR_HOST" --eval 'rs.status().ok' 2>/dev/null | grep -q "1"; then
+                  SUCCESS=true
+                  break
+                fi
+                sleep 10
+              done
+
+              if [ "$SUCCESS" != "true" ]; then
+                exit 1
+              fi
+      containers:
+        - name: mongos
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+            - "mongos"
+            - "--configdb"
+            - "{{ include "mongodb.configDBString" . }}"
+            - "--port"
+            - "{{ .Values.mongos.port }}"
+            - "--bind_ip_all"
+            #- "--keyFile"
+            #- "/etc/mongo-secrets/mongo-keyfile"
+            - "--logpath"
+            - "/dev/stdout"
+            - "--logappend"
+          ports:
+            - containerPort: {{ .Values.mongos.port }}
+              name: mongo
+          volumeMounts:
+            - name: mongo-keyfile-volume
+              mountPath: /etc/mongo-secrets
+              readOnly: true
+          resources:
+{{- toYaml .Values.mongos.resources | nindent 12 }}
+      volumes:
+        - name: mongo-keyfile-volume
+          secret:
+            secretName: {{ .Values.keyfile.existingSecret }}
+            defaultMode: 0400
