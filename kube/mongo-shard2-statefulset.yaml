@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo-shard2
+spec:
+  serviceName: "mongo-shard2-headless"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mongo-shard2
+  template:
+    metadata:
+      labels:
+        app: mongo-shard2
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: mongod-shardsvr
+          image: mongo:8.0.9
+          command:
+            - "mongod"
+            - "--shardsvr"
+            - "--replSet"
+            - "rsShard2"
+            - "--dbpath"
+            - "/data/db"
+            - "--port"
+            - "27017"
+            - "--bind_ip_all"
+            - "--keyFile"
+            - "/etc/mongo-secrets/mongo-keyfile"
+          ports:
+            - containerPort: 27017
+              name: mongo
+          volumeMounts:
+            - name: mongo-shard-data
+              mountPath: /data/db
+            - name: mongo-keyfile-volume
+              mountPath: /etc/mongo-secrets
+              readOnly: true
+      volumes:
+        - name: mongo-keyfile-volume
+          secret:
+            secretName: mongo-keyfile
+            defaultMode: 0400
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-shard-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+        # storageClassName: "storage-class" # Default for now
