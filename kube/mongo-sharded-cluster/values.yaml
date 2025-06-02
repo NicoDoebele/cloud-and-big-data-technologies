@@ -1,5 +1,5 @@
 replicaCount:
-  configServers: 2
+  configServers: 3
   mongos: 2
 
 image:
@@ -17,7 +17,7 @@ configServer:
   resources:
     requests:
       cpu: "250m"
-      memory: "256Mi"
+      memory: "512Mi"
     limits:
       cpu: "250m"
       memory: "512Mi"
@@ -34,7 +34,7 @@ sharding:
   resources:
     requests:
       cpu: "250m"
-      memory: "256Mi"
+      memory: "512Mi"
     limits:
       cpu: "250m"
       memory: "512Mi"
@@ -55,7 +55,7 @@ mongos:
   resources:
     requests:
       cpu: "250m"
-      memory: "256Mi"
+      memory: "512Mi"
     limits:
       cpu: "250m"
       memory: "512Mi"

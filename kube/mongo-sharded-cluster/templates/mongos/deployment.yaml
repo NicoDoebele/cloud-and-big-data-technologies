@@ -16,6 +16,17 @@ spec:
         - name: wait-for-configsvr
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: MONGO_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-cluster-admin-password
+                  key: username
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-cluster-admin-password
+                  key: password
           command:
             - bash
             - -c
@@ -27,7 +38,7 @@ spec:
               SUCCESS=false
               until [ $RETRY_COUNT -ge $MAX_RETRIES ]; do
                 RETRY_COUNT=$((RETRY_COUNT+1))
-                if mongosh --quiet --host "$CONFIG_SVR_HOST" --eval 'rs.status().ok' 2>/dev/null | grep -q "1"; then
+                if mongosh --quiet --host "$CONFIG_SVR_HOST" --eval 'rs.status().ok' --username "$MONGO_USERNAME" --password "$MONGO_PASSWORD" --authenticationDatabase "admin" 2>/dev/null | grep -q "1"; then
                   SUCCESS=true
                   break
                 fi
@@ -47,8 +58,8 @@ spec:
             - "--port"
             - "{{ .Values.mongos.port }}"
             - "--bind_ip_all"
-            #- "--keyFile"
-            #- "/etc/mongo-secrets/mongo-keyfile"
+            - "--keyFile"
+            - "/etc/mongo-secrets/mongo-keyfile"
             - "--logpath"
             - "/dev/stdout"
             - "--logappend"

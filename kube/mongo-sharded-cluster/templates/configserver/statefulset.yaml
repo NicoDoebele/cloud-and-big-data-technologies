@@ -13,7 +13,7 @@ spec:
       labels:
         app: {{ .Values.configServer.name }}
     spec:
-      terminationGracePeriodSeconds: 10
+      terminationGracePeriodSeconds: 60
       containers:
         - name: mongod-configsvr
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -27,20 +27,70 @@ spec:
             - "--port"
             - "{{ .Values.configServer.port }}"
             - "--bind_ip_all"
-            #- "--keyFile"
-            #- "/etc/mongo-secrets/mongo-keyfile"
-            #- "--auth"
-          #env:
-          #  - name: MONGO_INITDB_ROOT_USERNAME
-          #    valueFrom:
-          #      secretKeyRef:
-          #        name: mongo-cluster-admin-password
-          #        key: username
-          #  - name: MONGO_INITDB_ROOT_PASSWORD
-          #    valueFrom:
-          #      secretKeyRef:
-          #        name: mongo-cluster-admin-password
-          #        key: password
+            - "--keyFile"
+            - "/etc/mongo-secrets/mongo-keyfile"
+            - "--auth"
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - bash
+                  - -c
+                  - |
+                    if [ "$HOSTNAME" != "mongo-csrs-{{ sub (int .Values.replicaCount.configServers) 1 }}" ]; then
+                      exit 0
+                    fi
+
+                    (
+                      until mongosh --eval "db.adminCommand('ping').ok" | grep -q "1"; do
+                          sleep 1
+                      done
+
+                      if mongosh --eval "rs.status().ok" | grep -q "1"; then
+                          echo "Replica set $REPLICA_SET_ID already initialized"
+                          exit 0
+                      fi
+
+                      mongosh --eval '
+                        rs.initiate({
+                          _id: "{{ $.Values.configServer.replicaSetName }}",
+                          configsvr: true,
+                          members: [
+                            {{- $n := int $.Values.replicaCount.configServers }}
+                            {{- range $i, $_ := until $n }}
+                              { _id: {{ $i }}, host: "mongo-csrs-{{ $i }}.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}" }{{- if lt $i (sub $n 1) }},{{ end }}
+                            {{- end }}
+                          ]
+                        });
+                      '
+
+                      until mongosh --eval "rs.status().ok" | grep -q "1"; do
+                          sleep 1
+                      done
+
+                      until mongosh --eval "rs.isMaster().ismaster" | grep -q "true"; do
+                          sleep 1
+                      done
+
+                      mongosh --eval '
+                        db.getSiblingDB("admin").createUser({
+                          user: process.env.MONGO_INITDB_ROOT_USERNAME,
+                          pwd: process.env.MONGO_INITDB_ROOT_PASSWORD,
+                          roles: [ { role: "root", db: "admin" } ]
+                        });
+                      '
+                    ) &
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-cluster-admin-password
+                  key: username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-cluster-admin-password
+                  key: password
           ports:
             - containerPort: {{ .Values.configServer.port }}
               name: mongo

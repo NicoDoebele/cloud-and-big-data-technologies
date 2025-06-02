@@ -37,6 +37,17 @@ spec:
         - name: wait-for-configsvr
           image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            - name: MONGO_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-cluster-admin-password
+                  key: username
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-cluster-admin-password
+                  key: password
           command:
             - bash
             - -c
@@ -48,7 +59,7 @@ spec:
               SUCCESS=false
               until [ $RETRY_COUNT -ge $MAX_RETRIES ]; do
                 RETRY_COUNT=$((RETRY_COUNT+1))
-                if mongosh --quiet --host "$CONFIG_SVR_HOST" --eval 'rs.status().ok' 2>/dev/null | grep -q "1"; then
+                if mongosh --quiet --host "$CONFIG_SVR_HOST" --eval 'rs.status().ok' --username "$MONGO_USERNAME" --password "$MONGO_PASSWORD" --authenticationDatabase "admin" 2>/dev/null | grep -q "1"; then
                   SUCCESS=true
                   break
                 fi
@@ -71,8 +82,51 @@ spec:
             - "--port"
             - "{{ $.Values.sharding.port }}"
             - "--bind_ip_all"
-            #- "--keyFile"
-            #- "/etc/mongo-secrets/mongo-keyfile"
+            - "--keyFile"
+            - "/etc/mongo-secrets/mongo-keyfile"
+            - "--auth"
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - bash
+                  - -c
+                  - |
+                   if [ "$HOSTNAME" != "{{ printf "%s%d" $.Values.sharding.baseName $index }}-{{ sub $replicas 1 }}" ]; then
+                      exit 0
+                    fi
+
+                    until mongosh --eval "db.adminCommand('ping').ok" | grep -q "1"; do
+                        sleep 1
+                    done
+
+                    if mongosh --eval "rs.status().ok" | grep -q "1"; then
+                        echo "Replica set already initialized"
+                        exit 0
+                    fi
+
+                    mongosh --eval '
+                      rs.initiate({
+                        _id: "{{ printf "%s%d" $.Values.sharding.replicaSetBaseName $index }}",
+                        members: [
+                          {{- $n := int $replicas }}
+                          {{- range $i, $_ := until $n }}
+                            { _id: {{ $i }}, host: "{{ printf "%s%d" $.Values.sharding.baseName $index }}-{{ $i }}.{{ printf "%s%d-headless" $.Values.sharding.baseName $index }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.sharding.port }}" }{{- if lt $i (sub $n 1) }},{{ end }}
+                          {{- end }}
+                        ]
+                      });
+                    '
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-cluster-admin-password
+                  key: username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-cluster-admin-password
+                  key: password
           ports:
             - containerPort: {{ $.Values.sharding.port }}
               name: mongo
