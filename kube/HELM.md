@@ -55,7 +55,9 @@ kubectl exec -it mongo-csrs-2 -- mongosh
 
 kubectl exec -it mongo-csrs-1 -- mongosh --host mongo-csrs-2.mongo-csrs-headless.default.svc.cluster.local:27017
 
-kubectl exec -it mongo-csrs-1 -- mongosh --host mongo-csrs-2.mongo-csrs-headless.default.svc.cluster.local:27017 --username mongoadmin -password securepassword
+kubectl exec -it mongo-csrs-1 -- mongosh --host mongo-csrs-2.mongo-csrs-headless.default.svc.cluster.local:27017 --username mongoadmin --password securepassword
+
+kubectl exec -it mongo-shard1-0 -- mongosh --host mongo-shard1-1.mongo-shard1-headless.default.svc.cluster.local:27017
 
 kubectl exec -it mongo-csrs-0 -- sh
 
