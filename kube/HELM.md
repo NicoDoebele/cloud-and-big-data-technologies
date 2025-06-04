@@ -64,6 +64,32 @@ kubectl exec -it mongo-csrs-0 -- sh
 kubectl exec -it mongo-shard1-1 -- mongosh
 ```
 
+## MongoDB Tests
+
+Amount of members in replica set
+
+```bash
+db.adminCommand('replSetGetStatus').members.length
+```
+
+Returns 1 if database is properly handling pings
+
+```bash
+db.adminCommand('ping').ok
+```
+
+Check if replicaset is initialized
+
+```bash
+rs.status().ok
+```
+
+Check if node is master in replicaset
+
+```bash
+rs.isMaster().ismaster
+```
+
 ## Manual stuff
 
 Exec into mongos mongosh

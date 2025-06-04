@@ -138,6 +138,36 @@ spec:
               readOnly: true
           resources:
 {{- toYaml $.Values.sharding.resources | nindent 12 }}
+          startupProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - db.adminCommand('ping').ok === 1
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - db.adminCommand('ping').ok === 1
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - db.adminCommand('ping').ok === 1
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
       volumes:
         - name: mongo-keyfile-volume
           secret:
