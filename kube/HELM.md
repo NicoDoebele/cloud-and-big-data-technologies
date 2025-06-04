@@ -32,6 +32,12 @@ Delete all volumes
 kubectl delete pvc --all
 ```
 
+Helm history
+
+```bash
+helm history mongo -n default
+```
+
 Describe pod
 
 ```bash
@@ -62,6 +68,8 @@ kubectl exec -it mongo-shard1-0 -- mongosh --host mongo-shard1-1.mongo-shard1-he
 kubectl exec -it mongo-csrs-0 -- sh
 
 kubectl exec -it mongo-shard1-1 -- mongosh
+
+kubectl exec -it mongo-mongos-xxxx -- mongosh --username mongoadmin --password securepassword
 ```
 
 ## MongoDB Tests
@@ -88,6 +96,12 @@ Check if node is master in replicaset
 
 ```bash
 rs.isMaster().ismaster
+```
+
+Get amount of added shards
+
+```bash
+db.adminCommand('listShards').shards.length
 ```
 
 ## Manual stuff

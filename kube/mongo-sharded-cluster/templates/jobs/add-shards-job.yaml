@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-add-shards
+  labels:
+    app: {{ .Release.Name }}-add-shards
+    release: {{ .Release.Name }}
+  annotations:
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": "before-hook-creation"
+spec:
+  template:
+    spec:
+      serviceAccountName: {{ .Release.Name }}-add-shards
+      containers:
+      - name: {{ .Release.Name }}-add-shards
+        image: bitnami/kubectl:1.33.1
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: MONGO_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.adminUser.existingSecret }}
+              key: username
+        - name: MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.adminUser.existingSecret }}
+              key: password
+        command:
+        - /bin/sh
+        - -c
+        - |
+          until kubectl get pods -l app={{ .Values.mongos.name }} -o jsonpath='{.items[0].status.phase}' | grep -q "Running"; do
+            echo "Waiting for mongos pod to be ready..."
+            sleep 5
+          done
+
+          MONGOS_POD=$(kubectl get pods -l app={{ .Values.mongos.name }} -o jsonpath='{.items[0].metadata.name}')
+
+          SHARDS_ADDED=$(kubectl exec $MONGOS_POD -- mongosh --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('listShards').shards.length" --quiet)
+
+          until kubectl exec $MONGOS_POD -- mongosh --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('ping').ok" | grep -q "1"; do
+            echo "Waiting for mongos to be responsive..."
+            sleep 5
+          done
+
+          if [ "$SHARDS_ADDED" -eq "0" ]; then
+            SHARD_COUNT={{ .Values.sharding.clusterCount }}
+            for i in $(seq 1 $SHARD_COUNT); do
+              kubectl exec $MONGOS_POD -- mongosh --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "sh.addShard(\"{{ .Values.sharding.replicaSetBaseName }}$i/{{ .Values.sharding.baseName }}$i-0.{{ .Values.sharding.baseName }}$i-headless.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.sharding.port }}\")"
+            done
+          else
+            echo "Shards already added, skipping..."
+          fi
+      restartPolicy: OnFailure 
