@@ -37,48 +37,50 @@ spec:
                   - bash
                   - -c
                   - |
-                    if [ "$HOSTNAME" != "mongo-csrs-{{ sub (int .Values.replicaCount.configServers) 1 }}" ]; then
-                      exit 0
-                    fi
-
                     (
-                      until mongosh --eval "db.adminCommand('ping').ok" | grep -q "1"; do
-                          sleep 1
-                      done
+                      if [ "$HOSTNAME" == "mongo-csrs-{{ sub (int .Values.replicaCount.configServers) 1 }}" ]; then
+                        until mongosh --eval "db.adminCommand('ping').ok" | grep -q "1"; do
+                            sleep 5
+                        done
 
-                      if mongosh --eval "rs.status().ok" | grep -q "1"; then
-                          echo "Replica set $REPLICA_SET_ID already initialized"
-                          exit 0
+                        if mongosh --eval "rs.status().ok" | grep -q "1"; then
+                            echo "Replica set $REPLICA_SET_ID already initialized"
+                            exit 0
+                        fi
+
+                        mongosh --eval '
+                          rs.initiate({
+                            _id: "{{ $.Values.configServer.replicaSetName }}",
+                            configsvr: true,
+                            members: [
+                              {{- $n := int $.Values.replicaCount.configServers }}
+                              {{- range $i, $_ := until $n }}
+                                { _id: {{ $i }}, host: "mongo-csrs-{{ $i }}.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}" }{{- if lt $i (sub $n 1) }},{{ end }}
+                              {{- end }}
+                            ]
+                          });
+                        '
                       fi
 
-                      mongosh --eval '
-                        rs.initiate({
-                          _id: "{{ $.Values.configServer.replicaSetName }}",
-                          configsvr: true,
-                          members: [
-                            {{- $n := int $.Values.replicaCount.configServers }}
-                            {{- range $i, $_ := until $n }}
-                              { _id: {{ $i }}, host: "mongo-csrs-{{ $i }}.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}" }{{- if lt $i (sub $n 1) }},{{ end }}
-                            {{- end }}
-                          ]
-                        });
-                      '
-
                       until mongosh --eval "rs.status().ok" | grep -q "1"; do
-                          sleep 1
+                          sleep 5
                       done
 
-                      until mongosh --eval "rs.isMaster().ismaster" | grep -q "true"; do
-                          sleep 1
+                      until mongosh --eval "rs.status().members.some(m => m.stateStr === 'PRIMARY')" | grep -q "true"; do
+                          sleep 5
                       done
 
-                      mongosh --eval '
-                        db.getSiblingDB("admin").createUser({
-                          user: process.env.MONGO_INITDB_ROOT_USERNAME,
-                          pwd: process.env.MONGO_INITDB_ROOT_PASSWORD,
-                          roles: [ { role: "root", db: "admin" } ]
-                        });
-                      '
+                      if mongosh --eval "rs.isMaster().ismaster" | grep -q "true"; then
+                        mongosh --eval '
+                          db.getSiblingDB("admin").createUser({
+                            user: process.env.MONGO_INITDB_ROOT_USERNAME,
+                            pwd: process.env.MONGO_INITDB_ROOT_PASSWORD,
+                            roles: [ { role: "root", db: "admin" } ]
+                          });
+                        '
+                      else
+                        echo "Replica set $REPLICA_SET_ID is not the primary"
+                      fi
                     ) &
           env:
             - name: MONGO_INITDB_ROOT_USERNAME

@@ -97,7 +97,7 @@ spec:
                     fi
 
                     until mongosh --eval "db.adminCommand('ping').ok" | grep -q "1"; do
-                        sleep 1
+                        sleep 5
                     done
 
                     if mongosh --eval "rs.status().ok" | grep -q "1"; then

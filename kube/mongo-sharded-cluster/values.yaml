@@ -38,13 +38,16 @@ sharding:
     limits:
       cpu: "250m"
       memory: "512Mi"
-  autoConfigure:
-    databaseName: "twutter"
-    collections:
-      - name: "users"
-        shardKey: { "_id": "hashed" }
-      - name: "posts"
-        shardKey: { "_id": "hashed" }
+  # Deprecated: use auto-shard.sh script instead
+  #autoConfigure:
+  #  databaseName: "twutter"
+  #  collections:
+  #    - name: "users"
+  #      shardKey: { "_id": "hashed" }
+  #    - name: "posts"
+  #      shardKey: { "_id": "hashed" }
+  autoShardConfig:
+    enabled: true
 
 mongos:
   name: mongo-mongos

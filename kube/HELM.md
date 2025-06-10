@@ -55,6 +55,8 @@ Exec into node with mongosh / shell
 ```bash
 kubectl exec -it mongo-csrs-0 -- mongosh
 
+kubectl exec -it mongo-csrs-0 -- mongosh --username mongoadmin --password securepassword
+
 kubectl exec -it mongo-csrs-1 -- mongosh
 
 kubectl exec -it mongo-csrs-2 -- mongosh
@@ -90,6 +92,12 @@ Check if replicaset is initialized
 
 ```bash
 rs.status().ok
+```
+
+Check if a master node has been chosen
+
+```bash
+rs.status().members.some(m => m.stateStr === 'PRIMARY')
 ```
 
 Check if node is master in replicaset
