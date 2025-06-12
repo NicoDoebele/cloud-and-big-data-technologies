@@ -1,0 +1,1 @@
+Cinder CSI Plugin (OpenStack Volume Plugin) v1.33.0: https://github.com/kubernetes/cloud-provider-openstack/tree/v1.33.0/manifests/cinder-csi-plugin

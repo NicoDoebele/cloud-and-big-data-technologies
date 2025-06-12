@@ -25,3 +25,7 @@ deployment-status:
 	@for i in $(shell seq 1 $(shards)); do \
 		kubectl exec -it mongo-shard$$i-0 -- mongosh --eval "rs.status()"; \
 	done
+
+force-clean:
+	kubectl delete pods --all -n default --grace-period=0 --force
+	kubectl delete pvc --all
