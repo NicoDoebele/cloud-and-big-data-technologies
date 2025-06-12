@@ -1,12 +1,18 @@
 install:
 	helm install mongo ./mongo-sharded-cluster -f ./mongo-sharded-cluster/values.yaml
 
+upgrade:
+	helm upgrade mongo ./mongo-sharded-cluster -f ./mongo-sharded-cluster/values.yaml
+
 uninstall:
 	helm uninstall mongo
 
 clean:
 	helm uninstall mongo
 	kubectl delete pvc --all
+
+template:
+	helm template ./mongo-sharded-cluster -f ./mongo-sharded-cluster/values.yaml
 
 mongo-root:
 	@kubectl exec -it $(pod) -- mongosh

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-scripts
+  labels:
+    app: {{ .Release.Name }}-scripts
+data:
+  auto-shard.sh: |
+{{ .Files.Get "scripts/auto-shard.sh" | indent 4 }}

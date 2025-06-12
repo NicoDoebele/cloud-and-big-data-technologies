@@ -28,6 +28,9 @@ spec:
             secretKeyRef:
               name: {{ .Values.adminUser.existingSecret }}
               key: password
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
         command:
         - /bin/sh
         - -c
@@ -52,6 +55,15 @@ spec:
               kubectl exec $MONGOS_POD -- mongosh --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "sh.addShard(\"{{ .Values.sharding.replicaSetBaseName }}$i/{{ .Values.sharding.baseName }}$i-0.{{ .Values.sharding.baseName }}$i-headless.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.sharding.port }}\")"
             done
           else
-            echo "Shards already added, skipping..."
+            echo "Shards already added, skipping this setup script..."
+            exit 0
           fi
+
+          {{- if .Values.sharding.autoShardConfig.enabled }}
+          kubectl exec $MONGOS_POD -- mongosh --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "$(cat /scripts/auto-shard.sh)"
+          {{- end }}
+      volumes:
+      - name: scripts
+        configMap:
+          name: {{ .Release.Name }}-scripts
       restartPolicy: OnFailure 
