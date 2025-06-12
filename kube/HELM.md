@@ -6,6 +6,12 @@ Install
 helm install mongo ./mongo-sharded-cluster -f ./mongo-sharded-cluster/values.yaml
 ```
 
+Upgrade
+
+```bash
+helm upgrade mongo ./mongo-sharded-cluster -f ./mongo-sharded-cluster/values.yaml
+```
+
 Uninstall
 
 ```bash
