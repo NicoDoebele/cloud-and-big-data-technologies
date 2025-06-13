@@ -12,16 +12,16 @@ configServer:
   headlessServiceName: mongo-csrs-headless
   replicaSetName: rsConfig
   port: 27017
-  storage: 20Gi
+  storage: 2Gi # TODO: Change this to 20Gi
   # Might need to be disabled (commented out) when testing offline
-  storageClassName: "mongo-volume-xfs"
+  # storageClassName: "mongo-volume-xfs" # TODO: Uncomment this
   resources:
     requests:
-      cpu: "500m"
-      memory: "1Gi"
+      cpu: "250m" # TODO: Change this to 500m
+      memory: "512Mi" # TODO: Change this to 1Gi
     limits:
-      cpu: "500m"
-      memory: "1Gi"
+      cpu: "250m" # TODO: Change this to 500m
+      memory: "512Mi" # TODO: Change this to 1Gi
   #clusterIpSourceAllowlist: "10.0.0.0/24,192.168.1.0/24"
 
 sharding:
@@ -30,16 +30,16 @@ sharding:
   baseName: "mongo-shard"
   replicaSetBaseName: "rsShard"
   port: 27017
-  storage: 40Gi
+  storage: 2Gi # TODO: Change this to 40Gi
   # Might need to be disabled (commented out) when testing offline
-  storageClassName: "mongo-volume-xfs"
+  # storageClassName: "mongo-volume-xfs" # TODO: Uncomment this
   resources:
     requests:
-      cpu: "500m"
-      memory: "1Gi"
+      cpu: "250m" # TODO: Change this to 500m
+      memory: "512Mi" # TODO: Change this to 1Gi
     limits:
-      cpu: "500m"
-      memory: "1Gi"
+      cpu: "250m" # TODO: Change this to 500m
+      memory: "512Mi" # TODO: Change this to 1Gi
   # Deprecated: use auto-shard.sh script instead
   #autoConfigure:
   #  databaseName: "twutter"
@@ -59,11 +59,11 @@ mongos:
     nodePort: 30007
   resources:
     requests:
-      cpu: "500m"
-      memory: "1Gi"
+      cpu: "250m" # TODO: Change this to 500m
+      memory: "512Mi" # TODO: Change this to 1Gi
     limits:
-      cpu: "500m"
-      memory: "1Gi"
+      cpu: "250m" # TODO: Change this to 500m
+      memory: "512Mi" # TODO: Change this to 1Gi
 
 keyfile:
   existingSecret: "mongo-keyfile"
