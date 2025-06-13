@@ -7,3 +7,60 @@ metadata:
 data:
   auto-shard.sh: |
 {{ .Files.Get "scripts/auto-shard.sh" | indent 4 }}
+  init-configserver.sh: |
+    mongod --configsvr --replSet {{ .Values.configServer.replicaSetName }} --dbpath /data/db --port {{ .Values.configServer.port }} --bind_ip_all --keyFile /etc/mongo-secrets/mongo-keyfile --auth &
+
+    MONGOD_PID=$!
+
+    until mongosh --eval "db.adminCommand('ping').ok" | grep -q "1"; do
+      sleep 5
+    done
+
+    if mongosh --eval "rs.status().ok" | grep -q "1"; then
+      echo "Replica set $REPLICA_SET_ID already initialized"
+      exit 0
+    fi
+
+    if [ "$HOSTNAME" == "mongo-csrs-0" ]; then
+      mongosh --eval '
+        rs.initiate({
+          _id: "{{ .Values.configServer.replicaSetName }}",
+          configsvr: true,
+          members: [
+            { _id: 0, host: "mongo-csrs-0.{{ .Values.configServer.headlessServiceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.configServer.port }}" }
+          ]
+        });
+      '
+
+      until mongosh --eval "rs.status().ok" | grep -q "1"; do
+          sleep 5
+      done
+
+      until mongosh --eval "rs.status().members.some(m => m.stateStr === 'PRIMARY')" | grep -q "true"; do
+          sleep 5
+      done
+
+      if mongosh --eval "rs.isMaster().ismaster" | grep -q "true"; then
+        mongosh --eval '
+          db.getSiblingDB("admin").createUser({
+            user: process.env.MONGO_INITDB_ROOT_USERNAME,
+            pwd: process.env.MONGO_INITDB_ROOT_PASSWORD,
+            roles: [ { role: "root", db: "admin" } ]
+          });
+        '
+      else
+        exit 1
+      fi
+    else
+      HOST="mongo-csrs-0.{{ .Values.configServer.headlessServiceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.configServer.port }}"
+
+      FULL_HOSTNAME="${HOSTNAME}.{{ .Values.configServer.headlessServiceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.configServer.port }}"
+
+      mongosh --host "$HOST" \
+        -u "$MONGO_INITDB_ROOT_USERNAME" \
+        -p "$MONGO_INITDB_ROOT_PASSWORD" \
+        --authenticationDatabase admin \
+        --eval "rs.add('$FULL_HOSTNAME')"
+    fi
+
+    wait $MONGOD_PID

@@ -118,6 +118,14 @@ Get amount of added shards
 db.adminCommand('listShards').shards.length
 ```
 
+## Check other kube servers
+
+Get logs of the kubernetes service
+
+```bash
+sudo journalctl -u k3s -n 200 --no-pager
+```
+
 ## Manual stuff
 
 Exec into mongos mongosh

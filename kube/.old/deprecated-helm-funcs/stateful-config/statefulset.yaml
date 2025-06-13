@@ -1,0 +1,152 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.configServer.name }}
+spec:
+  serviceName: "{{ .Values.configServer.headlessServiceName }}"
+  replicas: {{ .Values.replicaCount.configServers }}
+  selector:
+    matchLabels:
+      app: {{ .Values.configServer.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.configServer.name }}
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: mongod-configsvr
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+            - "mongod"
+            - "--configsvr"
+            - "--replSet"
+            - "{{ .Values.configServer.replicaSetName }}"
+            - "--dbpath"
+            - "/data/db"
+            - "--port"
+            - "{{ .Values.configServer.port }}"
+            - "--bind_ip_all"
+            - "--keyFile"
+            - "/etc/mongo-secrets/mongo-keyfile"
+            - "--auth"
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - bash
+                  - -c
+                  - |
+                    (
+                      if [ "$HOSTNAME" == "mongo-csrs-{{ sub (int .Values.replicaCount.configServers) 1 }}" ]; then
+                        until mongosh --eval "db.adminCommand('ping').ok" | grep -q "1"; do
+                            sleep 5
+                        done
+
+                        if mongosh --eval "rs.status().ok" | grep -q "1"; then
+                            echo "Replica set $REPLICA_SET_ID already initialized"
+                            exit 0
+                        fi
+
+                        mongosh --eval '
+                          rs.initiate({
+                            _id: "{{ $.Values.configServer.replicaSetName }}",
+                            configsvr: true,
+                            members: [
+                              {{- $n := int $.Values.replicaCount.configServers }}
+                              {{- range $i, $_ := until $n }}
+                                { _id: {{ $i }}, host: "mongo-csrs-{{ $i }}.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}" }{{- if lt $i (sub $n 1) }},{{ end }}
+                              {{- end }}
+                            ]
+                          });
+                        '
+                      fi
+
+                      until mongosh --eval "rs.status().ok" | grep -q "1"; do
+                          sleep 5
+                      done
+
+                      until mongosh --eval "rs.status().members.some(m => m.stateStr === 'PRIMARY')" | grep -q "true"; do
+                          sleep 5
+                      done
+
+                      if mongosh --eval "rs.isMaster().ismaster" | grep -q "true"; then
+                        mongosh --eval '
+                          db.getSiblingDB("admin").createUser({
+                            user: process.env.MONGO_INITDB_ROOT_USERNAME,
+                            pwd: process.env.MONGO_INITDB_ROOT_PASSWORD,
+                            roles: [ { role: "root", db: "admin" } ]
+                          });
+                        '
+                      else
+                        echo "Replica set $REPLICA_SET_ID is not the primary"
+                      fi
+                    ) &
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-cluster-admin-password
+                  key: username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-cluster-admin-password
+                  key: password
+          ports:
+            - containerPort: {{ .Values.configServer.port }}
+              name: mongo
+          volumeMounts:
+            - name: mongo-config-data
+              mountPath: /data/db
+            - name: mongo-keyfile-volume
+              mountPath: /etc/mongo-secrets
+              readOnly: true
+          resources:
+{{- toYaml .Values.configServer.resources | nindent 12 }}
+          startupProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - db.adminCommand('ping').ok === 1
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - db.adminCommand('ping').ok === 1
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - db.adminCommand('ping').ok === 1
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: mongo-keyfile-volume
+          secret:
+            secretName: {{ .Values.keyfile.existingSecret }}
+            defaultMode: 0400
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-config-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.configServer.storage }}
+{{- if .Values.configServer.storageClassName }}
+        storageClassName: "{{ .Values.configServer.storageClassName }}"
+{{- end }}

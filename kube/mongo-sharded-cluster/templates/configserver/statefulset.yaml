@@ -18,70 +18,9 @@ spec:
         - name: mongod-configsvr
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command:
-            - "mongod"
-            - "--configsvr"
-            - "--replSet"
-            - "{{ .Values.configServer.replicaSetName }}"
-            - "--dbpath"
-            - "/data/db"
-            - "--port"
-            - "{{ .Values.configServer.port }}"
-            - "--bind_ip_all"
-            - "--keyFile"
-            - "/etc/mongo-secrets/mongo-keyfile"
-            - "--auth"
-          lifecycle:
-            postStart:
-              exec:
-                command:
-                  - bash
-                  - -c
-                  - |
-                    (
-                      if [ "$HOSTNAME" == "mongo-csrs-{{ sub (int .Values.replicaCount.configServers) 1 }}" ]; then
-                        until mongosh --eval "db.adminCommand('ping').ok" | grep -q "1"; do
-                            sleep 5
-                        done
-
-                        if mongosh --eval "rs.status().ok" | grep -q "1"; then
-                            echo "Replica set $REPLICA_SET_ID already initialized"
-                            exit 0
-                        fi
-
-                        mongosh --eval '
-                          rs.initiate({
-                            _id: "{{ $.Values.configServer.replicaSetName }}",
-                            configsvr: true,
-                            members: [
-                              {{- $n := int $.Values.replicaCount.configServers }}
-                              {{- range $i, $_ := until $n }}
-                                { _id: {{ $i }}, host: "mongo-csrs-{{ $i }}.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}" }{{- if lt $i (sub $n 1) }},{{ end }}
-                              {{- end }}
-                            ]
-                          });
-                        '
-                      fi
-
-                      until mongosh --eval "rs.status().ok" | grep -q "1"; do
-                          sleep 5
-                      done
-
-                      until mongosh --eval "rs.status().members.some(m => m.stateStr === 'PRIMARY')" | grep -q "true"; do
-                          sleep 5
-                      done
-
-                      if mongosh --eval "rs.isMaster().ismaster" | grep -q "true"; then
-                        mongosh --eval '
-                          db.getSiblingDB("admin").createUser({
-                            user: process.env.MONGO_INITDB_ROOT_USERNAME,
-                            pwd: process.env.MONGO_INITDB_ROOT_PASSWORD,
-                            roles: [ { role: "root", db: "admin" } ]
-                          });
-                        '
-                      else
-                        echo "Replica set $REPLICA_SET_ID is not the primary"
-                      fi
-                    ) &
+            - "/bin/bash"
+            - "-c"
+            - /scripts/init-configserver.sh
           env:
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
@@ -102,6 +41,8 @@ spec:
             - name: mongo-keyfile-volume
               mountPath: /etc/mongo-secrets
               readOnly: true
+            - name: scripts
+              mountPath: /scripts
           resources:
 {{- toYaml .Values.configServer.resources | nindent 12 }}
           startupProbe:
@@ -139,6 +80,10 @@ spec:
           secret:
             secretName: {{ .Values.keyfile.existingSecret }}
             defaultMode: 0400
+        - name: scripts
+          configMap:
+            name: {{ .Release.Name }}-scripts
+            defaultMode: 0555
   volumeClaimTemplates:
     - metadata:
         name: mongo-config-data
