@@ -12,7 +12,7 @@ configServer:
   headlessServiceName: mongo-csrs-headless
   replicaSetName: rsConfig
   port: 27017
-  storage: 10Gi
+  storage: 20Gi
   # Might need to be disabled (commented out) when testing offline
   storageClassName: "mongo-volume-xfs"
   resources:
@@ -30,7 +30,7 @@ sharding:
   baseName: "mongo-shard"
   replicaSetBaseName: "rsShard"
   port: 27017
-  storage: 10Gi
+  storage: 40Gi
   # Might need to be disabled (commented out) when testing offline
   storageClassName: "mongo-volume-xfs"
   resources:

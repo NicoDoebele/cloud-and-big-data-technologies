@@ -6,3 +6,6 @@ sh.shardCollection("twutter.users", { "_id": "hashed" });
 
 db.posts.createIndex({ "_id": "hashed" });
 sh.shardCollection("twutter.posts", { "_id": "hashed" });
+
+db.comments.createIndex({ "post_id": 1 });
+sh.shardCollection("twutter.comments", { "post_id": 1 });
