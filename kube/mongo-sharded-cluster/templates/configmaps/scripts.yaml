@@ -52,15 +52,15 @@ data:
         exit 1
       fi
     else
-      HOST="mongo-csrs-0.{{ .Values.configServer.headlessServiceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.configServer.port }}"
+      FULL_CONFIG_HOSTNAME="{{ range $index, $e := until (.Values.replicaCount.configServers | int) }}mongo-csrs-{{ $index }}.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}{{ if ne $index (sub ($.Values.replicaCount.configServers | int) 1) }},{{ end }}{{ end }}"
 
-      FULL_HOSTNAME="${HOSTNAME}.{{ .Values.configServer.headlessServiceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.configServer.port }}"
+      OWN_HOSTNAME="${HOSTNAME}.{{ .Values.configServer.headlessServiceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.configServer.port }}"
 
-      mongosh --host "$HOST" \
+      mongosh --host "$FULL_CONFIG_HOSTNAME" \
         -u "$MONGO_INITDB_ROOT_USERNAME" \
         -p "$MONGO_INITDB_ROOT_PASSWORD" \
         --authenticationDatabase admin \
-        --eval "rs.add('$FULL_HOSTNAME')"
+        --eval "rs.add('$OWN_HOSTNAME')"
     fi
 
     wait $MONGOD_PID
