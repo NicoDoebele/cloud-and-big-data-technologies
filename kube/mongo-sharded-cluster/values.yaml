@@ -26,7 +26,7 @@ configServer:
 
 sharding:
   clusterCount: 2
-  replicasPerCluster: 2
+  replicasPerCluster: 3
   baseName: "mongo-shard"
   replicaSetBaseName: "rsShard"
   port: 27017
