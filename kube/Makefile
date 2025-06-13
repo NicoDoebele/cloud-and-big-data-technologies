@@ -14,6 +14,10 @@ clean:
 template:
 	helm template ./mongo-sharded-cluster -f ./mongo-sharded-cluster/values.yaml
 
+cinder:
+	kubectl create -f manifests/cinder-csi-plugin/csi-secret-cinderplugin.yaml
+	kubectl -f manifests/cinder-csi-plugin/ apply
+
 mongo-root:
 	@kubectl exec -it $(pod) -- mongosh
 
