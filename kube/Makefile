@@ -21,8 +21,8 @@ cinder:
 mongo-root:
 	@kubectl exec -it $(pod) -- mongosh
 
-mongo-admin:
-	@kubectl exec -it $(pod) -- mongosh --username mongoadmin --password securepassword
+mongos:
+	@kubectl exec -it $$(kubectl get pods -l app=mongo-mongos -o jsonpath='{.items[0].metadata.name}') -- mongosh --username mongoadmin --password securepassword
 
 deployment-status:
 	@kubectl exec -it $(pod) -- mongosh --eval "sh.status()" --username mongoadmin --password securepassword

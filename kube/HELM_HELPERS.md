@@ -118,6 +118,18 @@ Get amount of added shards
 db.adminCommand('listShards').shards.length
 ```
 
+Check if shards id is included
+
+```bash
+db.adminCommand('listShards').shards.some(s => s._id === '<SHARD_ID>')
+```
+
+Get all shard ids
+
+```bash
+db.adminCommand('listShards').shards.map(s => s._id)
+```
+
 ## Check other kube servers
 
 Get logs of the kubernetes service

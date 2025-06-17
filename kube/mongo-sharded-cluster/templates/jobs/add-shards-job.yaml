@@ -42,26 +42,72 @@ spec:
 
           MONGOS_POD=$(kubectl get pods -l app={{ .Values.mongos.name }} -o jsonpath='{.items[0].metadata.name}')
 
-          SHARDS_ADDED=$(kubectl exec $MONGOS_POD -- mongosh --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('listShards').shards.length" --quiet)
-
-          until kubectl exec $MONGOS_POD -- mongosh --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('ping').ok" | grep -q "1"; do
+          until kubectl exec $MONGOS_POD -- mongosh --quiet --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('ping').ok" | grep -q "1"; do
             echo "Waiting for mongos to be responsive..."
             sleep 5
           done
 
-          if [ "$SHARDS_ADDED" -eq "0" ]; then
-            SHARD_COUNT={{ .Values.sharding.clusterCount }}
-            for i in $(seq 1 $SHARD_COUNT); do
-              kubectl exec $MONGOS_POD -- mongosh --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "sh.addShard(\"{{ .Values.sharding.replicaSetBaseName }}$i/{{ .Values.sharding.baseName }}$i-0.{{ .Values.sharding.baseName }}$i-headless.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.sharding.port }}\")"
+          SHARD_COUNT={{ .Values.sharding.clusterCount }}
+          for i in $(seq 1 $SHARD_COUNT); do
+            REPLICA_COUNT={{ .Values.sharding.replicasPerCluster }}
+            LAST_REPLICA=$((REPLICA_COUNT - 1))
+            SHARD_LABEL="app={{ .Values.sharding.baseName }}$i"
+            
+            until {
+              ACTUAL_PODS=$(kubectl get pods -l "$SHARD_LABEL" -o jsonpath='{.items}' | jq 'length')
+              [ "$ACTUAL_PODS" -eq "$REPLICA_COUNT" ] && \
+              kubectl get pods -l "$SHARD_LABEL" -o jsonpath="{.items[$LAST_REPLICA].status.phase}" | grep -q "Running"
+            }; do
+              echo "Waiting for last replica of shard $i to be ready... (Found $ACTUAL_PODS/$REPLICA_COUNT pods)"
+              sleep 5
             done
-          else
-            echo "Shards already added, skipping this setup script..."
-            exit 0
-          fi
+
+            FIRST_SHARD_POD="{{ .Values.sharding.baseName }}$i-0"
+
+            until kubectl exec $FIRST_SHARD_POD -- mongosh --quiet --eval "rs.status().ok" | grep -q "1"; do
+              echo "Waiting for replica set of shard $i to be initialized..."
+              sleep 5
+            done
+
+            until kubectl exec $FIRST_SHARD_POD -- mongosh --quiet --eval "rs.status().members.some(m => m.stateStr === 'PRIMARY')" | grep -q "true"; do
+              echo "Waiting for primary in shard $i..."
+              sleep 5
+            done
+
+            SHARD_ID="{{ .Values.sharding.replicaSetBaseName }}$i"
+            SHARD_EXISTS=$(kubectl exec $MONGOS_POD -- mongosh --quiet --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('listShards').shards.some(s => s._id === '$SHARD_ID')" --quiet)
+            
+            if [ "$SHARD_EXISTS" = "false" ]; then
+              SHARD_HOSTS=""
+              for j in $(seq 0 $LAST_REPLICA); do
+                if [ $j -gt 0 ]; then
+                  SHARD_HOSTS="${SHARD_HOSTS},"
+                fi
+                SHARD_HOSTS="${SHARD_HOSTS}{{ .Values.sharding.baseName }}$i-$j.{{ .Values.sharding.baseName }}$i-headless.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.sharding.port }}"
+              done
+
+              echo "Adding shard $i..."
+              echo "sh.addShard(\"$SHARD_ID/$SHARD_HOSTS\")"
+              kubectl exec $MONGOS_POD -- mongosh --quiet --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "sh.addShard(\"$SHARD_ID/$SHARD_HOSTS\")"
+            else
+              echo "Shard $i already exists, skipping..."
+            fi
+          done
 
           {{- if .Values.sharding.autoShardConfig.enabled }}
-          kubectl exec $MONGOS_POD -- mongosh --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "$(cat /scripts/auto-shard.sh)"
+          AUTO_SHARDED=$(kubectl exec $MONGOS_POD -- mongosh --quiet --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "db.getSiblingDB('clusterConfig').autoShardConfig.findOne({type: 'autoShard'})" --quiet)
+          
+          if [ "$AUTO_SHARDED" = "null" ]; then
+            echo "Running auto-shard configuration..."
+            kubectl exec $MONGOS_POD -- mongosh --quiet --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "$(cat /scripts/auto-shard.sh)"
+            
+            kubectl exec $MONGOS_POD -- mongosh --quiet --username $MONGO_USERNAME --password $MONGO_PASSWORD --authenticationDatabase admin --eval "db.getSiblingDB('clusterConfig').autoShardConfig.insertOne({type: 'autoShard', completed: true, timestamp: new Date()})"
+          else
+            echo "Auto-sharding already configured, skipping..."
+          fi
           {{- end }}
+
+          echo "Done"
       volumes:
       - name: scripts
         configMap:
