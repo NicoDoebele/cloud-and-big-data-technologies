@@ -1,0 +1,77 @@
+replicaCount:
+  configServers: 3
+  mongos: 2
+
+image:
+  repository: mongo
+  tag: "8.0.9"
+  pullPolicy: IfNotPresent
+
+configServer:
+  name: mongo-csrs
+  headlessServiceName: mongo-csrs-headless
+  replicaSetName: rsConfig
+  port: 27017
+  storage: 30Gi # Local: Change this to 2Gi
+  # Might need to be disabled (commented out) when testing offline
+  storageClassName: "mongo-volume-xfs" # Local: Comment this out
+  resources:
+    requests:
+      cpu: "500m" # Local: Change this to 250m
+      memory: "1Gi" # Local: Change this to 512Mi
+    limits:
+      cpu: "500m" # Local: Change this to 250m
+      memory: "1Gi" # Local: Change this to 512Mi
+  #clusterIpSourceAllowlist: "10.0.0.0/24,192.168.1.0/24"
+
+sharding:
+  clusterCount: 2
+  replicasPerCluster: 3
+  baseName: "mongo-shard"
+  replicaSetBaseName: "rsShard"
+  port: 27017
+  storage: 50Gi # Local: Change this to 2Gi
+  # Might need to be disabled (commented out) when testing offline
+  storageClassName: "mongo-volume-xfs" # Local: Comment this out
+  resources:
+    requests:
+      cpu: "500m" # Local: Change this to 250m
+      memory: "1Gi" # Local: Change this to 512Mi
+    limits:
+      cpu: "500m" # Local: Change this to 250m
+      memory: "1Gi" # Local: Change this to 512Mi
+  # Deprecated: use auto-shard.sh script instead
+  #autoConfigure:
+  #  databaseName: "twutter"
+  #  collections:
+  #    - name: "users"
+  #      shardKey: { "_id": "hashed" }
+  #    - name: "posts"
+  #      shardKey: { "_id": "hashed" }
+  autoShardConfig:
+    enabled: true
+
+mongos:
+  name: mongo-mongos
+  port: 27017
+  service:
+    type: NodePort
+    nodePort: 30007
+  resources:
+    requests:
+      cpu: "500m" # Local: Change this to 250m
+      memory: "1Gi" # Local: Change this to 512Mi
+    limits:
+      cpu: "500m" # Local: Change this to 250m
+      memory: "1Gi" # Local: Change this to 512Mi
+
+keyfile:
+  existingSecret: "mongo-keyfile"
+
+adminUser:
+  existingSecret: "mongo-cluster-admin-password"
+
+# For the mongos command --configdb
+# This will be constructed in the template using loops and helpers
+# Example: rsConfig/mongo-csrs-0.mongo-csrs-headless.default.svc.cluster.local:27017,...
+configDBString: "" # This will be dynamically generated
