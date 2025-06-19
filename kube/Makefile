@@ -11,6 +11,9 @@ clean:
 	helm uninstall mongo
 	kubectl delete pvc --all
 
+clean-volumes:
+	kubectl delete pvc --all
+
 template:
 	helm template ./mongo-sharded-cluster -f ./mongo-sharded-cluster/values.yaml
 
