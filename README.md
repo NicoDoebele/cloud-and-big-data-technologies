@@ -82,8 +82,8 @@ npm run dev
 - **Instances**: Configurable number of Rocky Linux 9.4 VMs
 - **Floating IPs**: Public IPs for external access
 - **Resource Sizing**: 
-  - Test: `m1.large` (2 vCPU, 4GB RAM)
-  - Production: `m1.xlarge` (4 vCPU, 8GB RAM)
+  - Test: `m1.large` (4 vCPU, 8GB RAM)
+  - Production: `m1.xlarge` (8 vCPU, 16GB RAM)
 
 #### K3s Provisioning (`provisioner-k3s.tf`)
 - **Master Node**: First instance becomes K3s master with cluster-init
