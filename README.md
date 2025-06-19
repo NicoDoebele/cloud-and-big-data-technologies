@@ -1,4 +1,4 @@
-# Blochi - Full-Stack Cloud Infrastructure Project
+# CBDT Project - Full-Stack Cloud Infrastructure Project
 
 A comprehensive cloud-native application demonstrating modern infrastructure patterns using OpenStack, Kubernetes (K3s), MongoDB sharding, and a Next.js social media application.
 
