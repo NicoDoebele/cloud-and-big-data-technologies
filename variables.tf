@@ -29,3 +29,9 @@ variable "production" {
     type = bool
     description = "Switch between production setup (value: true) and testing setup (value: false)"
 }
+
+variable "setup_mongo" {
+    type = bool
+    description = "Whether to deploy MongoDB sharded cluster automatically"
+    default = false
+}

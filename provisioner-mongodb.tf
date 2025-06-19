@@ -1,4 +1,6 @@
 resource "null_resource" "cinder_csi_plugin" {
+  count = var.setup_mongo ? 1 : 0
+  
   depends_on = [
     null_resource.local_setup
   ]
@@ -9,6 +11,7 @@ resource "null_resource" "cinder_csi_plugin" {
 }
 
 resource "helm_release" "mongodb_sharded" {
+  count      = var.setup_mongo ? 1 : 0
   name       = "mongodb-sharded"
   repository = null
   chart      = "${path.module}/kube/mongo-sharded-cluster"
@@ -17,6 +20,6 @@ resource "helm_release" "mongodb_sharded" {
 
   depends_on = [
     null_resource.local_setup,
-    null_resource.cinder_csi_plugin
+    null_resource.cinder_csi_plugin[0]
   ]
 }
