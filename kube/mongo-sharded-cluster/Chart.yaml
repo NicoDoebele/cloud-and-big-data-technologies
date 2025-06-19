@@ -3,4 +3,4 @@ name: mongodb-sharded
 description: A Helm chart for deploying a sharded MongoDB cluster (config servers, shards, and mongos routers)
 type: application
 version: 0.1.0
-appVersion: "{{ .Values.image.tag }}"
+appVersion: "latest"

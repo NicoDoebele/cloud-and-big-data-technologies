@@ -2,6 +2,9 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ .Values.configServer.name }}
+  labels:
+    {{- include "mongo-sharded-cluster.labels" . | nindent 4 }}
+    app: {{ .Values.configServer.name }}
 spec:
   serviceName: "{{ .Values.configServer.headlessServiceName }}"
   replicas: {{ .Values.replicaCount.configServers }}
@@ -12,6 +15,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.configServer.name }}
+        {{- include "mongo-sharded-cluster.labels" . | nindent 8 }}
     spec:
       terminationGracePeriodSeconds: 60
       containers:
@@ -87,6 +91,11 @@ spec:
   volumeClaimTemplates:
     - metadata:
         name: mongo-config-data
+        labels:
+          app: {{ .Values.configServer.name }}
+          {{- include "mongo-sharded-cluster.labels" . | nindent 10 }}
+        annotations:
+          "helm.sh/resource-policy": keep
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:

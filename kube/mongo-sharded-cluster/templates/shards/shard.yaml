@@ -9,6 +9,7 @@ metadata:
   name: {{ printf "%s%d-headless" $.Values.sharding.baseName $index }}
   labels:
     app: {{ printf "%s%d" $.Values.sharding.baseName $index }}
+    {{- include "mongo-sharded-cluster.labels" $ | nindent 4 }}
 spec:
   ports:
     - port: {{ $.Values.sharding.port }}
@@ -21,6 +22,9 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ printf "%s%d" $.Values.sharding.baseName $index }}
+  labels:
+    {{- include "mongo-sharded-cluster.labels" $ | nindent 4 }}
+    app: {{ printf "%s%d" $.Values.sharding.baseName $index }}
 spec:
   serviceName: "{{ printf "%s%d-headless" $.Values.sharding.baseName $index }}"
   replicas: {{ $replicas }}
@@ -31,6 +35,7 @@ spec:
     metadata:
       labels:
         app: {{ printf "%s%d" $.Values.sharding.baseName $index }}
+        {{- include "mongo-sharded-cluster.labels" $ | nindent 8 }}
     spec:
       terminationGracePeriodSeconds: 10
       initContainers:
@@ -131,7 +136,7 @@ spec:
             - containerPort: {{ $.Values.sharding.port }}
               name: mongo
           volumeMounts:
-            - name: mongo-shard-data
+            - name: {{ printf "mongo-shard%d-data" $index }}
               mountPath: /data/db
             - name: mongo-keyfile-volume
               mountPath: /etc/mongo-secrets
@@ -175,7 +180,12 @@ spec:
             defaultMode: 0400
   volumeClaimTemplates:
     - metadata:
-        name: mongo-shard-data
+        name: {{ printf "mongo-shard%d-data" $index }}
+        labels:
+          app: {{ printf "%s%d" $.Values.sharding.baseName $index }}
+          {{- include "mongo-sharded-cluster.labels" $ | nindent 10 }}
+        annotations:
+          "helm.sh/resource-policy": keep
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
