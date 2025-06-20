@@ -9,6 +9,7 @@ export default function Sidebar() {
   const navItems = [
     { icon: "🏠", label: "Home", href: "/", active: pathname === "/" },
     { icon: "🔍", label: "Explore", href: "/explore", active: pathname === "/explore" },
+    { icon: "🚀", label: "Load Test", href: "/load-test", active: pathname === "/load-test" },
     { icon: "🔔", label: "Notifications", href: "#", active: false },
     { icon: "✉️", label: "Messages", href: "#", active: false },
     { icon: "📋", label: "Lists", href: "#", active: false },
