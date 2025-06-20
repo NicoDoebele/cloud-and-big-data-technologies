@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -19,7 +19,7 @@ interface SearchResult {
   likes?: number;
 }
 
-export default function Explore() {
+function ExploreContent() {
   const searchParams = useSearchParams();
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -273,6 +273,14 @@ export default function Explore() {
       
       <FloatingActionButton />
     </div>
+  );
+}
+
+export default function Explore() {
+  return (
+    <Suspense fallback={<CapybaraExplore />}>
+      <ExploreContent />
+    </Suspense>
   );
 }
 
