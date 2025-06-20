@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/mongodb";
 
+// Force dynamic rendering to prevent build-time analysis
+export const dynamic = 'force-dynamic';
+
 // Define the User interface
 interface User {
   _id: string;

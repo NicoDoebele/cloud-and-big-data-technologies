@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import mongoose, { FlattenMaps, Types } from "mongoose";
 import { connectToDatabase } from "@/lib/mongodb";
 
+// Force dynamic rendering to prevent build-time analysis
+export const dynamic = 'force-dynamic';
+
 // Define the Post interface
 interface Post {
   _id: Types.ObjectId;
