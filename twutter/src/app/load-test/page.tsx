@@ -279,7 +279,7 @@ export default function LoadTestPage() {
                       type="number"
                       id="postCount"
                       min="1"
-                      max="1000"
+                      max="3000"
                       value={postCount}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -290,13 +290,13 @@ export default function LoadTestPage() {
                         }
                       }}
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter number of posts (1-1000)"
+                      placeholder="Enter number of posts (1-3000)"
                     />
                   </div>
                   
                   <button
                     onClick={handleBulkCreate}
-                    disabled={isGenerating || postCount === '' || Number.isNaN(postCount) || postCount < 1 || postCount > 1000}
+                    disabled={isGenerating || postCount === '' || Number.isNaN(postCount) || postCount < 1 || postCount > 3000}
                     className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2"
                   >
                     {isGenerating ? (
@@ -520,7 +520,11 @@ export default function LoadTestPage() {
                   </div>
                   <div>
                     <div className="font-semibold text-gray-900 dark:text-white">Gradual Increase</div>
-                    <div>Test with 100, 500, then 1000 posts</div>
+                    <div>Test with 100, 500, 1000, then 3000 posts</div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900 dark:text-white">High Load Testing</div>
+                    <div>3000 concurrent posts will stress test your system</div>
                   </div>
                   <div>
                     <div className="font-semibold text-gray-900 dark:text-white">Check Logs</div>
