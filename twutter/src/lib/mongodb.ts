@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import env from "@/lib/env";
+import { buildMongoUri } from "@/lib/env";
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -32,7 +32,7 @@ export async function connectToDatabase() {
     };
 
     cached.promise = mongoose
-      .connect(env.MONGODB_URI, opts)
+      .connect(buildMongoUri(), opts)
       .then((mongoose) => {
         return mongoose;
       });
