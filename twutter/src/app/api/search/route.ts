@@ -85,7 +85,7 @@ export async function GET(request: Request) {
         .limit(limit)
         .lean();
 
-      results.posts = posts.map((post: { _id: Types.ObjectId; content: string; author: string; createdAt: Date; likes: number }) => ({
+      results.posts = posts.map((post: any) => ({
         _id: post._id.toString(),
         content: post.content,
         author: post.author,
