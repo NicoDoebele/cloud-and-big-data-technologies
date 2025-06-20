@@ -27,6 +27,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Add build argument for MongoDB URI
+ARG MONGO_URI_ARG
+ENV MONGODB_URI=$MONGO_URI_ARG
+
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
@@ -44,8 +48,8 @@ FROM base AS runner
 WORKDIR /app
 
 ARG MONGO_URI_ARG
-
 ENV MONGO_URI=$MONGO_URI_ARG
+
 ENV NODE_ENV=production
 # Uncomment the following line in case you want to disable telemetry during runtime.
 # ENV NEXT_TELEMETRY_DISABLED=1
