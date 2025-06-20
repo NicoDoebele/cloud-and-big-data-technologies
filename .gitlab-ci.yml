@@ -1,0 +1,35 @@
+build_and_push_docker_image:
+  # Use a standard Docker image for the job
+  image: docker:latest
+  
+  # Define the stage for the job
+  stage: build
+
+  # Use the Docker-in-Docker service to allow building images
+  services:
+    - docker:dind
+
+  # Log in to the GitLab Container Registry before running the script
+  # This uses predefined CI/CD variables for secure authentication
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+
+  # The main script for building and pushing the image
+  script:
+    # Build the Docker image.
+    # --build-arg passes the secure CI/CD variable to the Dockerfile.
+    # The last argument './twutter' tells Docker to use the 'twutter'
+    # subdirectory as the build context.
+    - |
+      docker build \
+        --pull \
+        --build-arg MONGO_URI_ARG="$MONGO_URI" \
+        -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" \
+        ./twutter
+
+    # Push the newly built image to the GitLab Container Registry
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+
+  # This job will only run when changes are pushed to the 'main' branch.
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
