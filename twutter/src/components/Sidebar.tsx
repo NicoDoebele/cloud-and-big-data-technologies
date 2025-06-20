@@ -1,23 +1,29 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+
 export default function Sidebar() {
+  const pathname = usePathname();
+
   const navItems = [
-    { icon: "🏠", label: "Home", active: true },
-    { icon: "🔍", label: "Explore" },
-    { icon: "🔔", label: "Notifications" },
-    { icon: "✉️", label: "Messages" },
-    { icon: "📋", label: "Lists" },
-    { icon: "👥", label: "Communities" },
-    { icon: "👤", label: "Profile" },
-    { icon: "⚙️", label: "Settings" },
+    { icon: "🏠", label: "Home", href: "/", active: pathname === "/" },
+    { icon: "🔍", label: "Explore", href: "/explore", active: pathname === "/explore" },
+    { icon: "🔔", label: "Notifications", href: "#", active: false },
+    { icon: "✉️", label: "Messages", href: "#", active: false },
+    { icon: "📋", label: "Lists", href: "#", active: false },
+    { icon: "👥", label: "Communities", href: "#", active: false },
+    { icon: "👤", label: "Profile", href: "#", active: false },
+    { icon: "⚙️", label: "Settings", href: "#", active: false },
   ];
 
   return (
     <aside className="hidden md:block w-64 p-4 border-r border-gray-200 dark:border-gray-800">
       <div className="sticky top-20 space-y-2">
         {navItems.map((item, index) => (
-          <button
+          <Link
             key={index}
+            href={item.href}
             className={`w-full flex items-center space-x-4 px-4 py-3 rounded-full text-left transition-colors ${
               item.active
                 ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-semibold"
@@ -26,7 +32,7 @@ export default function Sidebar() {
           >
             <span className="text-xl">{item.icon}</span>
             <span className="text-lg">{item.label}</span>
-          </button>
+          </Link>
         ))}
         
         <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-full transition-colors mt-4">

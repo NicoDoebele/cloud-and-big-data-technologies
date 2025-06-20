@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 
 export default function Header() {
@@ -10,7 +11,7 @@ export default function Header() {
     <header className="sticky top-0 z-20 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
             <Image
               src="/Twutter_Logo.png"
               alt="Twutter"
@@ -21,7 +22,7 @@ export default function Header() {
             <span className="text-xl font-bold text-gray-900 dark:text-white hidden sm:block">
               Twutter
             </span>
-          </div>
+          </Link>
         </div>
         
         <div className="flex items-center space-x-4">
@@ -77,14 +78,22 @@ export default function Header() {
             </div>
             
             <div className="space-y-1">
-              <button className="w-full flex items-center space-x-4 px-4 py-3 rounded-full text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <Link 
+                href="/"
+                className="w-full flex items-center space-x-4 px-4 py-3 rounded-full text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
                 <span className="text-xl">🏠</span>
                 <span className="text-gray-900 dark:text-white">Home</span>
-              </button>
-              <button className="w-full flex items-center space-x-4 px-4 py-3 rounded-full text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              </Link>
+              <Link 
+                href="/explore"
+                className="w-full flex items-center space-x-4 px-4 py-3 rounded-full text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
                 <span className="text-xl">🔍</span>
                 <span className="text-gray-900 dark:text-white">Explore</span>
-              </button>
+              </Link>
               <button className="w-full flex items-center space-x-4 px-4 py-3 rounded-full text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <span className="text-xl">🔔</span>
                 <span className="text-gray-900 dark:text-white">Notifications</span>
