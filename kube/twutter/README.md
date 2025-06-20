@@ -24,8 +24,7 @@ Create the configmap with kubectl command:
 ```bash
 kubectl create configmap mongodb-config \
   --from-literal=host=127.0.0.1 \
-  --from-literal=port=27017 \
-  --labels=app=twutter-app
+  --from-literal=port=27017
 ```
 
 ## Deployment
@@ -40,6 +39,10 @@ kubectl apply -f service.yaml
 ### Using kustomize:
 ```bash
 kubectl apply -k .
+```
+
+```bash
+kubectl delete -k .
 ```
 
 ## Configuration

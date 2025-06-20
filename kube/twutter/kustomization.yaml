@@ -9,5 +9,6 @@ resources:
 - service.yaml
 - secret.yaml
 
-commonLabels:
-  app: twutter-app 
+labels:
+- pairs:
+    app: twutter-app 
