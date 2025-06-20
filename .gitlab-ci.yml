@@ -9,6 +9,11 @@ build_and_push_docker_image:
   services:
     - docker:dind
 
+  # Define necessary environment variables for Docker-in-Docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+
   # Log in to the GitLab Container Registry before running the script
   # This uses predefined CI/CD variables for secure authentication
   before_script:
