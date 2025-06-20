@@ -77,6 +77,7 @@ function generateUserData(username: string) {
 
 export default function LoadTestPage() {
   const [postCount, setPostCount] = useState<number | ''>(10);
+  const [useBulkApi, setUseBulkApi] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [results, setResults] = useState<{
@@ -86,6 +87,7 @@ export default function LoadTestPage() {
     averageTime: number;
     usersCreated: number;
     postCount: number;
+    method: string;
   } | null>(null);
   const [fetchResults, setFetchResults] = useState<{
     totalTime: number;
@@ -128,6 +130,22 @@ export default function LoadTestPage() {
       });
       if (!response.ok) {
         throw new Error("Failed to create post");
+      }
+      return response.json();
+    },
+  });
+
+  const createBulkPosts = useMutation({
+    mutationFn: async (posts: { content: string; author: string }[]) => {
+      const response = await fetch("/api/posts/bulk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ posts }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to create posts in bulk");
       }
       return response.json();
     },
@@ -180,18 +198,30 @@ export default function LoadTestPage() {
     // Generate posts
     const posts = Array.from({ length: postCount }, () => generateRandomPost());
     
-    // Create all posts concurrently
-    const postPromises = posts.map(async (post) => {
+    if (useBulkApi) {
+      // Use bulk API
       try {
-        await createPost.mutateAsync(post);
-        successCount++;
+        const result = await createBulkPosts.mutateAsync(posts);
+        successCount = result.count;
+        failedCount = postCount - successCount;
       } catch (error) {
-        console.error("Failed to create post:", error);
-        failedCount++;
+        console.error("Failed to create posts in bulk:", error);
+        failedCount = postCount;
       }
-    });
-    
-    await Promise.all(postPromises);
+    } else {
+      // Use individual API calls
+      const postPromises = posts.map(async (post) => {
+        try {
+          await createPost.mutateAsync(post);
+          successCount++;
+        } catch (error) {
+          console.error("Failed to create post:", error);
+          failedCount++;
+        }
+      });
+      
+      await Promise.all(postPromises);
+    }
     
     const endTime = Date.now();
     const totalTime = endTime - startTime;
@@ -204,6 +234,7 @@ export default function LoadTestPage() {
       averageTime,
       usersCreated,
       postCount,
+      method: useBulkApi ? "Bulk API" : "Individual API Calls"
     });
     
     setIsGenerating(false);
@@ -293,20 +324,58 @@ export default function LoadTestPage() {
                       placeholder="Enter number of posts (1-3000)"
                     />
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      API Method
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="apiMethod"
+                          checked={useBulkApi}
+                          onChange={() => setUseBulkApi(true)}
+                          className="mr-2 text-blue-500 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          Bulk API (Recommended)
+                        </span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="apiMethod"
+                          checked={!useBulkApi}
+                          onChange={() => setUseBulkApi(false)}
+                          className="mr-2 text-blue-500 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          Individual API Calls
+                        </span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {useBulkApi 
+                        ? "Single API call with all posts - much faster for large batches" 
+                        : "Multiple concurrent API calls - tests connection handling"
+                      }
+                    </p>
+                  </div>
                   
                   <button
                     onClick={handleBulkCreate}
-                    disabled={isGenerating || postCount === '' || Number.isNaN(postCount) || postCount < 1 || postCount > 3000}
+                    disabled={isGenerating || postCount === '' || Number.isNaN(postCount) || postCount < 1 || postCount > 30000}
                     className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2"
                   >
                     {isGenerating ? (
                       <>
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                        <span>Generating {postCount} posts...</span>
+                        <span>Generating {postCount} posts using {useBulkApi ? 'Bulk API' : 'Individual Calls'}...</span>
                       </>
                     ) : (
                       <>
-                        <span>🚀 Generate {Number(postCount) > 0 ? postCount : ''} Posts</span>
+                        <span>🚀 Generate {Number(postCount) > 0 ? postCount : ''} Posts ({useBulkApi ? 'Bulk' : 'Individual'})</span>
                       </>
                     )}
                   </button>
@@ -378,13 +447,14 @@ export default function LoadTestPage() {
                   
                   <div className="mt-6 p-4 bg-gray-900/70 rounded-lg">
                     <h4 className="font-semibold text-white mb-2">
-                      Performance Analysis
+                      Performance Analysis - {results.method}
                     </h4>
                     <div className="text-sm text-gray-400 space-y-1">
                       <p>• <span className="font-medium text-gray-300">Success Rate:</span> {results.postCount > 0 ? ((results.success / results.postCount) * 100).toFixed(1) : 'N/A'}%</p>
                       <p>• <span className="font-medium text-gray-300">Posts per second:</span> {(results.success / (results.totalTime / 1000)).toFixed(1)}</p>
-                      <p>• <span className="font-medium text-gray-300">Concurrent requests handled:</span> {results.postCount}</p>
+                      <p>• <span className="font-medium text-gray-300">Concurrent requests handled:</span> {results.method === 'Bulk API' ? '1 bulk request' : results.postCount}</p>
                       <p>• <span className="font-medium text-gray-300">Users available for posts:</span> {SAMPLE_USERNAMES.length}</p>
+                      <p>• <span className="font-medium text-gray-300">Method used:</span> {results.method}</p>
                     </div>
                   </div>
                 </div>
@@ -491,7 +561,8 @@ export default function LoadTestPage() {
                 <div className="text-blue-800 dark:text-blue-200 space-y-2 text-sm">
                   <p>• <strong>Load Testing:</strong> First creates 20 unique users if they don't exist</p>
                   <p>• <strong>Load Testing:</strong> Posts are generated with random usernames and content</p>
-                  <p>• <strong>Load Testing:</strong> All requests are sent concurrently to test your backend's parallel processing</p>
+                  <p>• <strong>Bulk API:</strong> Single API call with all posts - much faster for large batches</p>
+                  <p>• <strong>Individual API Calls:</strong> Multiple concurrent requests to test connection handling</p>
                   <p>• <strong>Load Testing:</strong> Results show success rate, timing, and performance metrics</p>
                   <p>• <strong>Database Fetch Test:</strong> Fetches all posts from the database to measure query performance</p>
                   <p>• <strong>Database Fetch Test:</strong> Measures total time, post count, and posts per second</p>
@@ -515,12 +586,20 @@ export default function LoadTestPage() {
                     <div>Begin with 10-50 posts to establish a baseline</div>
                   </div>
                   <div>
+                    <div className="font-semibold text-gray-900 dark:text-white">Bulk vs Individual</div>
+                    <div>Bulk API is faster for large batches, Individual tests connection limits</div>
+                  </div>
+                  <div>
                     <div className="font-semibold text-gray-900 dark:text-white">Monitor Resources</div>
                     <div>Watch CPU, memory, and database connections</div>
                   </div>
                   <div>
                     <div className="font-semibold text-gray-900 dark:text-white">Gradual Increase</div>
                     <div>Test with 100, 500, 1000, then 3000 posts</div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900 dark:text-white">Compare Methods</div>
+                    <div>Try both bulk and individual to see performance differences</div>
                   </div>
                   <div>
                     <div className="font-semibold text-gray-900 dark:text-white">High Load Testing</div>
