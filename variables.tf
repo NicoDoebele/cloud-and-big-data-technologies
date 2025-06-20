@@ -35,3 +35,9 @@ variable "setup_mongo" {
     description = "Whether to deploy MongoDB sharded cluster automatically"
     default = false
 }
+
+variable "setup_twutter" {
+    type = bool
+    description = "Whether to deploy Twutter application automatically"
+    default = false
+}
