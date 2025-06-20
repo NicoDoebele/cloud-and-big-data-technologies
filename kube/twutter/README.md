@@ -45,6 +45,12 @@ kubectl apply -k .
 kubectl delete -k .
 ```
 
+Update to newest build:
+
+```bash
+kubectl rollout restart deployment/twutter-app
+```
+
 ## Configuration
 
 - **Replicas**: 3 (for high availability)
