@@ -1,10 +1,283 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import FloatingActionButton from "@/components/FloatingActionButton";
+import PostList from "@/components/PostList";
+
+interface SearchResult {
+  _id: string;
+  type: "post" | "user";
+  content?: string;
+  author?: string;
+  username?: string;
+  displayName?: string;
+  bio?: string;
+  createdAt?: string;
+  likes?: number;
+}
 
 export default function Explore() {
+  const searchParams = useSearchParams();
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"posts" | "users">("posts");
+
+  const query = searchParams.get("q");
+  const userQuery = searchParams.get("user");
+  const postQuery = searchParams.get("post");
+
+  useEffect(() => {
+    if (query) {
+      setSearchQuery(query);
+      performSearch(query);
+    } else if (userQuery) {
+      setSearchQuery(`@${userQuery}`);
+      performUserSearch(userQuery);
+    } else if (postQuery) {
+      performPostSearch(postQuery);
+    }
+  }, [query, userQuery, postQuery]);
+
+  const performSearch = async (searchTerm: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(searchTerm)}&limit=20`);
+      const data = await response.json();
+      
+      const allResults = [
+        ...data.users.map((user: any) => ({
+          _id: user._id,
+          type: "user" as const,
+          username: user.username,
+          displayName: user.displayName,
+          bio: user.bio,
+          createdAt: user.createdAt
+        })),
+        ...data.posts.map((post: any) => ({
+          _id: post._id,
+          type: "post" as const,
+          content: post.content,
+          author: post.author,
+          createdAt: post.createdAt,
+          likes: post.likes
+        }))
+      ];
+      
+      setSearchResults(allResults);
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const performUserSearch = async (username: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/users?username=${encodeURIComponent(username)}`);
+      const data = await response.json();
+      
+      const userResults = data.users.map((user: any) => ({
+        _id: user._id,
+        type: "user" as const,
+        username: user.username,
+        displayName: user.displayName,
+        bio: user.bio,
+        createdAt: user.createdAt
+      }));
+      
+      setSearchResults(userResults);
+    } catch (error) {
+      console.error("User search error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const performPostSearch = async (postId: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/posts?post_id=${postId}`);
+      const data = await response.json();
+      
+      if (data.posts && data.posts.length > 0) {
+        const postResults = data.posts.map((post: any) => ({
+          _id: post._id,
+          type: "post" as const,
+          content: post.content,
+          author: post.author,
+          createdAt: post.createdAt,
+          likes: post.likes
+        }));
+        
+        setSearchResults(postResults);
+      }
+    } catch (error) {
+      console.error("Post search error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredResults = searchResults.filter(result => 
+    (activeTab === "posts" && result.type === "post") || 
+    (activeTab === "users" && result.type === "user")
+  );
+
+  // If no search is active, show the original capybara content
+  if (!query && !userQuery && !postQuery) {
+    return <CapybaraExplore />;
+  }
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-black">
+      <Header />
+      
+      <div className="flex justify-center">
+        <div className="w-full max-w-screen-xl flex">
+          <Sidebar />
+          
+          <main className="flex-1 border-x border-gray-200 dark:border-gray-800">
+            <div className="sticky top-0 z-10 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
+              <div className="px-4 py-3">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Search Results
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {searchQuery ? `Results for "${searchQuery}"` : "Search results"}
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-4">
+              {/* Search Tabs */}
+              <div className="flex space-x-1 mb-6 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                <button
+                  onClick={() => setActiveTab("posts")}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === "posts"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  }`}
+                >
+                  Posts ({searchResults.filter(r => r.type === "post").length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("users")}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === "users"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  }`}
+                >
+                  Users ({searchResults.filter(r => r.type === "user").length})
+                </button>
+              </div>
+
+              {/* Loading State */}
+              {isLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <span className="ml-3 text-gray-600 dark:text-gray-400">Searching...</span>
+                </div>
+              )}
+
+              {/* Results */}
+              {!isLoading && (
+                <div className="space-y-4">
+                  {filteredResults.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="text-gray-500 dark:text-gray-400 text-lg mb-2">
+                        No {activeTab} found
+                      </div>
+                      <div className="text-sm text-gray-400 dark:text-gray-500">
+                        Try adjusting your search terms
+                      </div>
+                    </div>
+                  ) : (
+                    filteredResults.map((result) => (
+                      <div
+                        key={`${result.type}-${result._id}`}
+                        className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
+                      >
+                        {result.type === "user" ? (
+                          <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                              {result.displayName?.[0]?.toUpperCase() || "U"}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-gray-900 dark:text-white">
+                                {result.displayName}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                @{result.username}
+                              </div>
+                              {result.bio && (
+                                <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                                  {result.bio}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                {result.author?.[0]?.toUpperCase() || "U"}
+                              </div>
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                @{result.author}
+                              </span>
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {result.createdAt && new Date(result.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="text-gray-900 dark:text-white">
+                              {result.content}
+                            </div>
+                            {result.likes !== undefined && (
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                ❤️ {result.likes} likes
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </main>
+          
+          <aside className="hidden lg:block w-96 p-4">
+            <div className="sticky top-4 space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Search Tips
+                </h2>
+                <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
+                  <div>• Use @username to find specific users</div>
+                  <div>• Search for posts by content or author</div>
+                  <div>• Try different keywords for better results</div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+      
+      <FloatingActionButton />
+    </div>
+  );
+}
+
+// Original capybara content component
+function CapybaraExplore() {
   const capybaraFacts = [
     {
       title: "The World's Largest Rodent",
@@ -135,15 +408,12 @@ export default function Explore() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
-      {/* Header */}
       <Header />
       
       <div className="flex justify-center">
         <div className="w-full max-w-screen-xl flex">
-          {/* Sidebar */}
           <Sidebar />
           
-          {/* Main Content */}
           <main className="flex-1 border-x border-gray-200 dark:border-gray-800">
             <div className="sticky top-0 z-10 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
               <div className="px-4 py-3">
@@ -199,241 +469,86 @@ export default function Explore() {
                         <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs font-medium">
                           {item.type === "video" ? "Watch Video" : "📸 Image"}
                         </div>
-                        {/* Fallback for failed images */}
-                        {item.type === "image" && (
-                          <div className="hidden w-full h-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
-                            <div className="text-center text-white">
-                              <div className="text-4xl mb-2">🦦</div>
-                              <div className="text-sm font-medium">{item.title}</div>
-                              <div className="text-xs opacity-80 mt-1">{item.description}</div>
-                            </div>
-                          </div>
-                        )}
+                        <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs font-medium">
+                          {getChillEmoji(item.chillLevel)} {getChillStatus(item.chillLevel)}
+                        </div>
                       </div>
                       <div className="p-4">
-                        <h4 className="font-bold text-gray-900 dark:text-white mb-2">
-                          {item.title}
-                        </h4>
-                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
-                          {item.description}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-lg">{getChillEmoji(item.chillLevel)}</span>
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                              {getChillStatus(item.chillLevel)}
-                            </span>
-                          </div>
-                          <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                            {item.chillLevel}% chill
-                          </div>
-                        </div>
-                        {item.type === "video" && (
-                          <a 
-                            href={item.video} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="mt-3 inline-block w-full bg-blue-500 hover:bg-blue-600 text-white text-center py-2 px-4 rounded-lg transition-colors text-sm font-medium"
-                          >
-                            Watch Video 🎬
-                          </a>
-                        )}
+                        <h4 className="font-bold text-gray-900 dark:text-white mb-2">{item.title}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Capybara Facts Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {capybaraFacts.map((fact, index) => (
-                  <div key={index} className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                    <div className="relative h-48 overflow-hidden">
-                      <img 
-                        src={fact.image} 
-                        alt={fact.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          target.nextElementSibling!.classList.remove('hidden');
-                        }}
-                      />
-                      {/* Fallback for failed images */}
-                      <div className="hidden w-full h-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
-                        <div className="text-center text-white">
-                          <div className="text-6xl mb-2">🦦</div>
-                          <div className="text-sm font-medium">{fact.title}</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                        {fact.title}
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
-                        {fact.description}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg">{getChillEmoji(fact.chillLevel)}</span>
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {getChillStatus(fact.chillLevel)}
-                          </span>
-                        </div>
-                        <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                          {fact.chillLevel}% chill
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Chill Vibes Section */}
-              <div className="mt-12 bg-gray-50 dark:bg-gray-900 rounded-2xl p-8">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
-                  Life Lessons from Capybaras 🧘‍♂️
+              {/* Capybara Facts */}
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                  Why Capybaras Are Amazing 🦦
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <span className="text-2xl">😌</span>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Stay Calm</h4>
-                        <p className="text-gray-600 dark:text-gray-300 text-sm">Nothing is worth stressing over</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {capybaraFacts.map((fact, index) => (
+                    <div key={index} className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                      <div className="relative h-32 mb-4 rounded-lg overflow-hidden">
+                        <img 
+                          src={fact.image} 
+                          alt={fact.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs font-medium">
+                          {getChillEmoji(fact.chillLevel)} {fact.chillLevel}% Chill
+                        </div>
                       </div>
+                      <h4 className="font-bold text-gray-900 dark:text-white mb-2">{fact.title}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{fact.description}</p>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <span className="text-2xl">💧</span>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Take a Bath</h4>
-                        <p className="text-gray-600 dark:text-gray-300 text-sm">Water is therapeutic</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <span className="text-2xl">👥</span>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Be Social</h4>
-                        <p className="text-gray-600 dark:text-gray-300 text-sm">Good friends make life better</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <span className="text-2xl">🌿</span>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Eat Well</h4>
-                        <p className="text-gray-600 dark:text-gray-300 text-sm">Fresh greens are always good</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <span className="text-2xl">😴</span>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Rest Often</h4>
-                        <p className="text-gray-600 dark:text-gray-300 text-sm">Naps are essential</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <span className="text-2xl">❤️</span>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Spread Love</h4>
-                        <p className="text-gray-600 dark:text-gray-300 text-sm">Be kind to everyone</p>
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              </div>
-
-              {/* Quote Section */}
-              <div className="mt-8 text-center">
-                <blockquote className="text-2xl font-light text-gray-700 dark:text-gray-300 italic">
-                  "Be like a capybara: chill, friendly, and always ready for a good time in the water."
-                </blockquote>
-                <p className="text-gray-500 dark:text-gray-400 mt-2">- Ancient Capybara Wisdom</p>
               </div>
             </div>
           </main>
           
-          {/* Right Sidebar */}
           <aside className="hidden lg:block w-96 p-4">
             <div className="sticky top-4 space-y-4">
               <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-4">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  Capybara Facts
+                  Chill Level Guide
                 </h2>
                 <div className="space-y-3">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Scientific Name
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">95-100%</span>
+                    <span className="text-lg">😌 Maximum Chill</span>
                   </div>
-                  <div className="font-bold text-gray-900 dark:text-white">
-                    Hydrochoerus hydrochaeris
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">90-94%</span>
+                    <span className="text-lg">😊 Super Relaxed</span>
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Native to South America
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">85-89%</span>
+                    <span className="text-lg">😎 Very Mellow</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">80-84%</span>
+                    <span className="text-lg">😄 Pretty Chill</span>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-4">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  Why Capybaras Are Awesome
-                </h2>
-                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                  <li>• They're incredibly peaceful</li>
-                  <li>• Great swimmers</li>
-                  <li>• Social animals</li>
-                  <li>• Help other animals relax</li>
-                  <li>• Live stress-free lives</li>
-                </ul>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-4">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  Capybara Mood Today
-                </h2>
-                <div className="text-center">
-                  <div className="text-6xl mb-2">😌</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300">
-                    Maximum Chill Mode
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    100% relaxation achieved
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-4">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  Featured Videos
-                </h2>
-                <div className="space-y-3">
-                  <a 
-                    href="https://www.youtube.com/watch?v=0wB7iuER2X0" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="block p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                  >
-                    <div className="text-sm font-medium text-blue-600 dark:text-blue-400">🎵 Zen Vibes - Lofi Sunset</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">99% chill level</div>
-                  </a>
-                  <a 
-                    href="https://www.youtube.com/watch?v=FR3i0qKzRvg" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="block p-3 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
-                  >
-                    <div className="text-sm font-medium text-green-600 dark:text-green-400">🛁 Extended Hot Spring Relaxation</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">97% chill level</div>
-                  </a>
-                </div>
+              <div className="bg-gradient-to-br from-green-400 to-blue-500 rounded-2xl p-4 text-white">
+                <h2 className="text-xl font-bold mb-2">Join the Chill</h2>
+                <p className="text-sm opacity-90 mb-4">
+                  Follow capybara accounts and embrace the zen lifestyle
+                </p>
+                <button className="bg-white text-green-500 px-4 py-2 rounded-full font-medium hover:bg-gray-100 transition-colors">
+                  Start Following
+                </button>
               </div>
             </div>
           </aside>
         </div>
       </div>
       
-      {/* Floating Action Button for Mobile */}
       <FloatingActionButton />
     </div>
   );
