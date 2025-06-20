@@ -2,17 +2,15 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useUser } from "./UserContext";
 
 export default function CreatePost() {
-  const [formData, setFormData] = useState({
-    content: "",
-    author: "",
-  });
-
+  const [content, setContent] = useState("");
+  const { currentUser } = useUser();
   const queryClient = useQueryClient();
 
   const createPost = useMutation({
-    mutationFn: async (postData: typeof formData) => {
+    mutationFn: async (postData: { content: string; author: string }) => {
       const response = await fetch("/api/posts", {
         method: "POST",
         headers: {
@@ -27,46 +25,43 @@ export default function CreatePost() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
-      setFormData({ content: "", author: "" });
+      setContent("");
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createPost.mutate(formData);
+    if (!currentUser) return;
+    createPost.mutate({ content, author: currentUser.username });
   };
+
+  if (!currentUser) {
+    return (
+      <div className="border-b border-gray-200 dark:border-gray-800 p-4">
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          Please login to create a post
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border-b border-gray-200 dark:border-gray-800 pb-4" data-create-post>
       <div className="flex space-x-3">
         <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
-          {formData.author ? formData.author[0].toUpperCase() : "U"}
+          {currentUser.username[0].toUpperCase()}
         </div>
         
         <div className="flex-1">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <input
-                type="text"
-                value={formData.author}
-                onChange={(e) =>
-                  setFormData({ ...formData, author: e.target.value })
-                }
-                className="w-full p-3 bg-transparent border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-lg focus:outline-none"
-                placeholder="What's your username?"
-                required
-              />
-            </div>
-            
-            <div>
               <textarea
-                value={formData.content}
-                onChange={(e) =>
-                  setFormData({ ...formData, content: e.target.value })
-                }
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
                 className="w-full p-3 bg-transparent border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-lg resize-none focus:outline-none min-h-[120px]"
                 placeholder="What's happening?"
                 required
+                maxLength={280}
               />
             </div>
             
@@ -86,13 +81,18 @@ export default function CreatePost() {
                 </button>
               </div>
               
-              <button
-                type="submit"
-                disabled={createPost.isPending || !formData.content.trim() || !formData.author.trim()}
-                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-full transition-colors"
-              >
-                {createPost.isPending ? "Posting..." : "Post"}
-              </button>
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {content.length}/280
+                </span>
+                <button
+                  type="submit"
+                  disabled={createPost.isPending || !content.trim()}
+                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-full transition-colors"
+                >
+                  {createPost.isPending ? "Posting..." : "Post"}
+                </button>
+              </div>
             </div>
           </form>
         </div>
