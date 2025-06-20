@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Twutter",
   description: "A Twitter-like application",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({
