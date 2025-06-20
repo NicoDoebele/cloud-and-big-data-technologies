@@ -1,3 +1,5 @@
+"use client";
+
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import FloatingActionButton from "@/components/FloatingActionButton";
@@ -7,43 +9,129 @@ export default function Explore() {
     {
       title: "The World's Largest Rodent",
       description: "Capybaras can grow up to 4 feet long and weigh over 100 pounds, making them the largest rodents in the world.",
-      image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop"
+      image: "https://images.unsplash.com/photo-1599482499632-136d895f3731?q=80&w=2824&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 85
     },
     {
       title: "Nature's Zen Masters",
       description: "Capybaras are known for their incredibly calm and peaceful nature. They rarely get stressed and are often seen lounging in water.",
-      image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop"
+      image: "https://images.unsplash.com/photo-1559934382-654d580c885c?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 95
     },
     {
       title: "Social Butterflies",
       description: "These gentle giants live in groups of 10-20 individuals and are incredibly social animals that get along with almost everyone.",
-      image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop"
+      image: "https://images.unsplash.com/photo-1628183353426-9f041e6c384e?q=80&w=2960&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 90
     },
     {
       title: "Water Lovers",
       description: "Capybaras are excellent swimmers and spend much of their time in water to stay cool and avoid predators.",
-      image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop"
+      image: "https://images.unsplash.com/photo-1628183353426-9f041e6c384e?q=80&w=2960&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 88
     },
     {
       title: "The Ultimate Chill Buddies",
       description: "Known as 'nature's therapists', capybaras have a calming presence that makes other animals feel safe around them.",
-      image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop"
+      image: "https://images.unsplash.com/photo-1572948604164-947c569a331d?q=80&w=2954&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 92
     },
     {
       title: "Living Stress-Free",
       description: "Capybaras teach us the art of relaxation - they take life slow, enjoy good company, and never rush through their day.",
-      image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop"
+      image: "https://images.unsplash.com/photo-1543682441-160a7489953d?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 96
     }
   ];
 
-  const capybaraImages = [
-    "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=600&fit=crop"
+  const capybaraGallery = [
+    {
+      title: "Ultra Chill - Baby Riding on Mom",
+      description: "Baby capybara floating in water at golden hour",
+      image: "https://images.unsplash.com/photo-1599482499632-136d895f3731?q=80&w=2824&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 100,
+      type: "image"
+    },
+    {
+      title: "Super Relaxed - Group Soaking",
+      description: "Group soaking in shallow water, barely moving",
+      image: "https://images.unsplash.com/photo-1559934382-654d580c885c?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 95,
+      type: "image"
+    },
+    {
+      title: "Floating Calm - Serene Drift",
+      description: "Artistic depiction of a capybara serenely drifting",
+      image: "https://images.unsplash.com/photo-1628183353426-9f041e6c384e?q=80&w=2960&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 98,
+      type: "image"
+    },
+    {
+      title: "Laid-back Lone Soak",
+      description: "Single capybara chilling in a steamy hot spring",
+      image: "https://images.unsplash.com/photo-1572948604164-947c569a331d?q=80&w=2954&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 93,
+      type: "image"
+    },
+    {
+      title: "Chill with Snack",
+      description: "Capybara lying with oranges lined on its back",
+      image: "https://images.unsplash.com/photo-1543682441-160a7489953d?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 87,
+      type: "image"
+    },
+    {
+      title: "Very Mellow - Water's Edge",
+      description: "A capybara standing calmly by the water's edge",
+      image: "https://images.unsplash.com/photo-1614028290516-abea9b6ac613?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      chillLevel: 89,
+      type: "image"
+    },
+    {
+      title: "Just Chillin' - Grass Buddies",
+      description: "Two capybaras hanging out on grass, eyes half-closed",
+      video: "https://www.youtube.com/watch?v=1-qaQuggBno",
+      chillLevel: 91,
+      type: "video"
+    },
+    {
+      title: "Zen Vibes - Lofi Sunset",
+      description: "Lofi vibes with a capybara and turtle at sunset",
+      video: "https://www.youtube.com/watch?v=0wB7iuER2X0",
+      chillLevel: 99,
+      type: "video"
+    },
+    {
+      title: "Extended Relaxation - Hot Spring",
+      description: "Capybara soaking in Japanese zoo hot spring for an hour",
+      video: "https://www.youtube.com/watch?v=FR3i0qKzRvg",
+      chillLevel: 97,
+      type: "video"
+    },
+    {
+      title: "Spa Day - Vaporwave Vibes",
+      description: "Capybara enjoying spa-like downtime in calming hot spring",
+      video: "https://boingboing.net/2023/12/27/capybaras-vaporwave-the-most-relaxing-video-ever.html",
+      chillLevel: 100,
+      type: "video"
+    }
   ];
+
+  const getChillEmoji = (level: number) => {
+    if (level >= 95) return "😌";
+    if (level >= 90) return "😊";
+    if (level >= 85) return "😎";
+    if (level >= 80) return "😄";
+    return "🙂";
+  };
+
+  const getChillStatus = (level: number) => {
+    if (level >= 95) return "Maximum Chill";
+    if (level >= 90) return "Super Relaxed";
+    if (level >= 85) return "Very Mellow";
+    if (level >= 80) return "Pretty Chill";
+    return "Getting There";
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
@@ -79,29 +167,84 @@ export default function Explore() {
                 </div>
               </div>
 
-              {/* Capybara Photo Gallery */}
+              {/* Capybara Gallery */}
               <div className="mb-8">
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                  Capybara Photo Gallery 📸
+                  Capybara Chill Gallery 📸
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {capybaraImages.map((image, index) => (
-                    <div key={index} className="relative group overflow-hidden rounded-2xl">
-                      <img 
-                        src={image} 
-                        alt={`Capybara ${index + 1}`}
-                        className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"></div>
-                      <div className="absolute bottom-2 left-2 text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        Chill Level: {Math.floor(Math.random() * 100) + 1}%
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {capybaraGallery.map((item, index) => (
+                    <div key={index} className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                      <div className="relative h-48 overflow-hidden">
+                        {item.type === "video" ? (
+                          <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                            <div className="text-center text-white">
+                              <div className="text-4xl mb-2">🎥</div>
+                              <div className="text-sm font-medium">{item.title}</div>
+                              <div className="text-xs opacity-80 mt-1">{item.description}</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <img 
+                            src={item.image} 
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.nextElementSibling!.classList.remove('hidden');
+                            }}
+                          />
+                        )}
+                        <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs font-medium">
+                          {item.type === "video" ? "Watch Video" : "📸 Image"}
+                        </div>
+                        {/* Fallback for failed images */}
+                        {item.type === "image" && (
+                          <div className="hidden w-full h-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
+                            <div className="text-center text-white">
+                              <div className="text-4xl mb-2">🦦</div>
+                              <div className="text-sm font-medium">{item.title}</div>
+                              <div className="text-xs opacity-80 mt-1">{item.description}</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <h4 className="font-bold text-gray-900 dark:text-white mb-2">
+                          {item.title}
+                        </h4>
+                        <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
+                          {item.description}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-lg">{getChillEmoji(item.chillLevel)}</span>
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              {getChillStatus(item.chillLevel)}
+                            </span>
+                          </div>
+                          <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                            {item.chillLevel}% chill
+                          </div>
+                        </div>
+                        {item.type === "video" && (
+                          <a 
+                            href={item.video} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-block w-full bg-blue-500 hover:bg-blue-600 text-white text-center py-2 px-4 rounded-lg transition-colors text-sm font-medium"
+                          >
+                            Watch Video 🎬
+                          </a>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Capybara Grid */}
+              {/* Capybara Facts Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {capybaraFacts.map((fact, index) => (
                   <div key={index} className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -109,17 +252,39 @@ export default function Explore() {
                       <img 
                         src={fact.image} 
                         alt={fact.title}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling!.classList.remove('hidden');
+                        }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                      {/* Fallback for failed images */}
+                      <div className="hidden w-full h-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
+                        <div className="text-center text-white">
+                          <div className="text-6xl mb-2">🦦</div>
+                          <div className="text-sm font-medium">{fact.title}</div>
+                        </div>
+                      </div>
                     </div>
                     <div className="p-6">
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
                         {fact.title}
                       </h3>
-                      <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                      <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
                         {fact.description}
                       </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-lg">{getChillEmoji(fact.chillLevel)}</span>
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {getChillStatus(fact.chillLevel)}
+                          </span>
+                        </div>
+                        <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                          {fact.chillLevel}% chill
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -232,6 +397,35 @@ export default function Explore() {
                   <div className="text-sm text-gray-600 dark:text-gray-300">
                     Maximum Chill Mode
                   </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    100% relaxation achieved
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Featured Videos
+                </h2>
+                <div className="space-y-3">
+                  <a 
+                    href="https://www.youtube.com/watch?v=0wB7iuER2X0" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                  >
+                    <div className="text-sm font-medium text-blue-600 dark:text-blue-400">🎵 Zen Vibes - Lofi Sunset</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">99% chill level</div>
+                  </a>
+                  <a 
+                    href="https://www.youtube.com/watch?v=FR3i0qKzRvg" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block p-3 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                  >
+                    <div className="text-sm font-medium text-green-600 dark:text-green-400">🛁 Extended Hot Spring Relaxation</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">97% chill level</div>
+                  </a>
                 </div>
               </div>
             </div>
