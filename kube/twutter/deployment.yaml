@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: twutter-app
+  labels:
+    app: twutter-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: twutter-app
+  template:
+    metadata:
+      labels:
+        app: twutter-app
+    spec:
+      containers:
+      - name: twutter-app
+        image: gitlab.reutlingen-university.de:5050/doebele/cbdt-projekt-3:latest
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: MONGODB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: username
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: password
+        - name: MONGODB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-config
+              key: host
+        - name: MONGODB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-config
+              key: port
+        - name: MONGODB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: database
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5 
