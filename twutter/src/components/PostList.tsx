@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useUser } from "./UserContext";
+import CommentSection from "./CommentSection";
 
 interface Post {
   _id: string;
@@ -9,6 +11,7 @@ interface Post {
   createdAt: string;
   likes: number;
   comments: Array<{
+    _id: string;
     content: string;
     author: string;
     createdAt: string;
@@ -16,6 +19,8 @@ interface Post {
 }
 
 export default function PostList() {
+  const { currentUser } = useUser();
+  
   const { data, isLoading, error } = useQuery<{ posts: Post[] }>({
     queryKey: ["posts"],
     queryFn: async () => {
@@ -59,7 +64,7 @@ export default function PostList() {
       {data?.posts.map((post) => (
         <article
           key={post._id}
-          className="border-b border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer"
+          className="border-b border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
         >
           <div className="flex space-x-3">
             {/* Avatar */}
@@ -120,6 +125,13 @@ export default function PostList() {
                   </div>
                 </button>
               </div>
+              
+              {/* Comment Section */}
+              <CommentSection 
+                postId={post._id}
+                comments={post.comments}
+                currentUser={currentUser?.username}
+              />
             </div>
           </div>
         </article>
