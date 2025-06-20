@@ -30,10 +30,12 @@ build_and_push_docker_image:
         --pull \
         --build-arg MONGO_URI_ARG="$MONGO_URI" \
         -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" \
+        -t "$CI_REGISTRY_IMAGE:latest" \
         ./twutter
 
     # Push the newly built image to the GitLab Container Registry
     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE:latest"
 
   # This job will only run when changes are pushed to the 'main' branch.
   rules:
