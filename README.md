@@ -1,6 +1,6 @@
 # CBDT Project - Full-Stack Cloud Infrastructure Project
 
-A comprehensive cloud-native application demonstrating modern infrastructure patterns using OpenStack, Kubernetes (K3s), MongoDB sharding, and a Next.js social media application.
+A comprehensive cloud-native application demonstrating modern infrastructure patterns using OpenStack, Kubernetes (K3s), MongoDB sharding, and a Next.js social media application with automated CI/CD deployment.
 
 ## 🏗️ Architecture Overview
 
@@ -13,7 +13,18 @@ A comprehensive cloud-native application demonstrating modern infrastructure pat
 │ • Security      │    │ • Worker Nodes  │    │ • MongoDB       │
 │ • Instances     │    │ • CSI Plugin    │    │ • API Routes    │
 │ • Floating IPs  │    │ • Helm Charts   │    │ • React UI      │
+│                 │    │ • Twutter       │    │ • Load Testing  │
+│                 │    │   Deployment    │    │ • Search        │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                                ▼
+                    ┌─────────────────┐
+                    │   GitLab CI/CD  │
+                    │                 │
+                    │ • Auto Build    │
+                    │ • Container Reg │
+                    │ • Auto Deploy   │
+                    └─────────────────┘
 ```
 
 ## 🚀 Quick Start
@@ -26,12 +37,12 @@ A comprehensive cloud-native application demonstrating modern infrastructure pat
 - Docker installed
 - **GitLab access token** for Terraform state management
 
-### 1. Infrastructure Deployment (Automated)
+### 1. Infrastructure Deployment (Fully Automated)
 ```bash
 # Initialize Terraform (use gitlab terraform state)
 terraform init
 
-# Deploy entire infrastructure (OpenStack + K3s + MongoDB + CSI Plugin)
+# Deploy entire infrastructure (OpenStack + K3s + MongoDB + Twutter)
 terraform apply
 
 # The deployment automatically:
@@ -39,33 +50,20 @@ terraform apply
 # - Bootstraps K3s cluster
 # - Deploys CSI plugin for storage
 # - Deploys MongoDB sharded cluster
+# - Deploys Twutter application from GitLab
 # - Configures kubectl access
 ```
 
-### 2. Deploy MongoDB Sharded Cluster (happens automatically)
+### 2. Access Your Applications
 ```bash
-cd kube/mongo-sharded-cluster
+# Get node IPs
+kubectl get nodes -o wide
 
-# Create required secrets first
-kubectl create secret generic mongo-keyfile --from-file=mongodb-keyfile
-kubectl create secret generic mongo-cluster-admin-password \
-  --from-literal=username=admin \
-  --from-literal=password=your-secure-password
+# Access Twutter application
+curl http://<node-ip>:30006
 
-# Deploy MongoDB cluster
-helm install mongo-sharded-cluster . -n default
-```
-
-### 3. Deploy Twutter Application
-```bash
-cd twutter
-
-# Set environment variables
-export MONGODB_URI="mongodb://admin:your-secure-password@localhost:30007/twutter?authSource=admin"
-
-# Install dependencies and run
-npm install
-npm run dev
+# Access MongoDB (via mongos)
+mongosh --host <node-ip> --port 30007 --username mongoadmin --password securepassword
 ```
 
 ## 📋 Detailed Architecture
@@ -94,6 +92,12 @@ npm run dev
 - **CSI Plugin**: Automatically deploys OpenStack Cinder CSI plugin
 - **Helm Chart**: Deploys MongoDB sharded cluster using production values
 - **Dependencies**: Ensures proper deployment order
+
+#### Automated Twutter Deployment (`provisioner-twutter.tf`)
+- **GitLab Integration**: Automatically deploys from GitLab Container Registry
+- **Latest Image**: Uses `gitlab.reutlingen-university.de:5050/doebele/cbdt-projekt-3:latest`
+- **CI/CD Pipeline**: Integrated with GitLab automated deployment workflow
+- **Database Integration**: Pre-configured with MongoDB sharded cluster
 
 ### 2. Kubernetes Cluster (K3s)
 
@@ -176,15 +180,31 @@ sh.shardCollection("twutter.comments", { "post_id": 1 });
 - **UI**: Tailwind CSS v4
 - **State Management**: TanStack React Query
 - **Validation**: Zod schema validation
+- **Containerization**: Docker with multi-stage builds
+- **Deployment**: Kubernetes with Kustomize
+
+#### Application Features
+- **Social Media Platform**: Twitter-like interface with posts, comments, and users
+- **Real-time Search**: Search across posts and users with instant results
+- **Load Testing Interface**: Built-in performance testing at `/load-test`
+- **Responsive Design**: Mobile and desktop optimized
+- **Dark Mode**: Modern UI with dark/light theme support
+- **User Management**: Create and manage user profiles
+- **Post Interactions**: Create posts with character limits and engagement
 
 #### Database Schema
 ```typescript
-// Users collection
+// Users collection (sharded by _id)
 interface User {
   _id: ObjectId;
   username: string;
   email: string;
+  displayName: string;
+  bio: string;
+  avatar: string;
   createdAt: Date;
+  followers: string[];
+  following: string[];
 }
 
 // Posts collection (sharded by _id)
@@ -209,13 +229,48 @@ interface Comment {
 #### API Routes
 - `GET /api/posts` - Fetch posts with pagination and filtering
 - `POST /api/posts` - Create new posts
-- `GET /api/users` - Fetch users
+- `POST /api/posts/bulk` - Create multiple posts efficiently
+- `GET /api/users` - Fetch users with search
 - `POST /api/users` - Create new users
+- `GET /api/search` - Search posts and users
+- `POST /api/posts/comments` - Create comments on posts
+
+#### Load Testing Capabilities
+- **Built-in Interface**: Access at `/load-test`
+- **Post Generation**: Create 1-3000 posts simultaneously
+- **Bulk API Testing**: Test bulk vs individual API performance
+- **Database Performance**: Measure query performance across shards
+- **Real-time Metrics**: Success rates, timing, and throughput analysis
 
 #### Database Connection (`src/lib/mongodb.ts`)
 - Connection pooling with global caching
 - Automatic reconnection handling
 - Environment-based configuration
+- Flexible connection string building
+
+#### Kubernetes Deployment (`kube/twutter/`)
+- **Deployment**: 3 replicas for high availability
+- **Service**: NodePort service on port 30006
+- **Health Checks**: Liveness and readiness probes
+- **Resource Limits**: CPU and memory constraints
+- **Secrets**: MongoDB credentials management
+- **ConfigMap**: Database connection configuration
+
+### 5. GitLab CI/CD Integration
+
+#### Automated Deployment Pipeline
+- **Container Registry**: Images stored in GitLab Container Registry
+- **Auto Build**: Automatic builds on code changes
+- **Latest Image**: Always deploys latest `:latest` tag
+- **Zero Downtime**: Rolling updates with health checks
+- **State Management**: Terraform state managed in GitLab
+
+#### Deployment Workflow
+1. **Code Push**: Triggers GitLab CI/CD pipeline
+2. **Build**: Creates Docker image with Next.js application
+3. **Registry**: Pushes to GitLab Container Registry
+4. **Deploy**: Kubernetes automatically pulls latest image
+5. **Health Check**: Verifies application is running correctly
 
 ## 🔧 Configuration
 
@@ -223,6 +278,13 @@ interface Comment {
 ```bash
 # MongoDB connection string
 MONGODB_URI="mongodb://admin:password@localhost:30007/twutter?authSource=admin"
+
+# Alternative: Individual parameters
+MONGODB_HOST=127.0.0.1
+MONGODB_PORT=27017
+MONGODB_USERNAME=twutter
+MONGODB_PASSWORD=x
+MONGODB_DATABASE=twutter
 
 # OpenStack configuration (in cloud.conf)
 username = admin
@@ -243,6 +305,26 @@ test_flavor_name       = "m1.large"
 production_flavor_name = "m1.xlarge"
 ```
 
+### Kubernetes Configuration
+```yaml
+# Twutter deployment resources
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Health checks
+livenessProbe:
+  httpGet:
+    path: /
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+```
+
 ## 🚀 Deployment Workflow
 
 ### 1. Complete Automated Deployment
@@ -258,6 +340,7 @@ terraform apply
 # - Bootstraps K3s cluster
 # - Deploys CSI plugin
 # - Deploys MongoDB sharded cluster
+# - Deploys Twutter application from GitLab
 # - Configures kubectl access
 ```
 
@@ -269,6 +352,10 @@ kubectl get nodes -o wide
 # Check MongoDB pods
 kubectl get pods -l app.kubernetes.io/name=mongodb
 
+# Check Twutter application
+kubectl get pods -l app=twutter-app
+kubectl get svc twutter-service
+
 # Check CSI plugin
 kubectl get pods -n kube-system | grep csi
 
@@ -276,13 +363,20 @@ kubectl get pods -n kube-system | grep csi
 kubectl port-forward svc/mongo-mongos 30007:27017
 ```
 
-### 3. Application Deployment
+### 3. Application Access
 ```bash
-# Set environment
-export MONGODB_URI="mongodb://admin:secure-password@localhost:30007/twutter?authSource=admin"
+# Get node IPs
+kubectl get nodes -o wide
 
-# Run application
-cd twutter && npm run dev
+# Access Twutter application
+curl http://<node-ip>:30006
+
+# Access load testing interface
+curl http://<node-ip>:30006/load-test
+
+# Test API endpoints
+curl http://<node-ip>:30006/api/users
+curl http://<node-ip>:30006/api/posts
 ```
 
 ## 🔍 Monitoring and Debugging
@@ -297,6 +391,10 @@ kubectl get pods --all-namespaces
 
 # Check MongoDB cluster status
 kubectl exec -it deployment/mongo-mongos -- mongosh --eval "sh.status()"
+
+# Check Twutter application
+kubectl get pods -l app=twutter-app
+kubectl logs -l app=twutter-app
 ```
 
 ### Database Operations
@@ -309,15 +407,38 @@ mongosh --port 30007 --eval "sh.status()"
 
 # Check collection distribution
 mongosh --port 30007 --eval "db.posts.getShardDistribution()"
+
+# Check Twutter database
+mongosh --port 30007 --eval "use twutter; db.users.find().limit(5)"
 ```
 
-### Application Logs
+### Application Monitoring
 ```bash
+# Check Twutter service
+kubectl describe service twutter-service
+
+# Monitor resource usage
+kubectl top pods -l app=twutter-app
+
 # Check application logs
 kubectl logs -f deployment/twutter-app
 
-# Check MongoDB logs
-kubectl logs -f statefulset/mongo-shard1-0
+# Test application health
+kubectl exec -it twutter-app-xxxx -- curl http://localhost:3000/
+```
+
+### Load Testing
+```bash
+# Access load testing interface
+curl http://<node-ip>:30006/load-test
+
+# Generate test data via API
+curl -X POST http://<node-ip>:30006/api/posts/bulk \
+  -H "Content-Type: application/json" \
+  -d '{"posts":[{"content":"Test post 1","author":"user1"},{"content":"Test post 2","author":"user2"}]}'
+
+# Monitor performance metrics
+kubectl logs -l app=twutter-app | grep -i "performance\|load"
 ```
 
 ## 🛠️ Development
@@ -341,6 +462,23 @@ curl http://localhost:3000/api/posts
 curl -X POST http://localhost:3000/api/posts \
   -H "Content-Type: application/json" \
   -d '{"content":"Hello World","author":"testuser"}'
+
+# Test search functionality
+curl "http://localhost:3000/api/search?q=hello&type=all"
+
+# Test bulk operations
+curl -X POST http://localhost:3000/api/posts/bulk \
+  -H "Content-Type: application/json" \
+  -d '{"posts":[{"content":"Bulk post 1","author":"user1"},{"content":"Bulk post 2","author":"user2"}]}'
+```
+
+### Docker Development
+```bash
+# Build Docker image
+cd twutter && docker build -t twutter:dev .
+
+# Run with Docker
+docker run -p 3000:3000 -e MONGODB_URI="mongodb://host.docker.internal:27017/twutter" twutter:dev
 ```
 
 ## 🔒 Security Considerations
@@ -352,12 +490,14 @@ curl -X POST http://localhost:3000/api/posts \
 - **RBAC**: Configure proper Kubernetes RBAC
 - **Secrets**: Use Kubernetes secrets for sensitive data
 - **Monitoring**: Implement proper logging and monitoring
+- **Application Security**: Non-root user, resource limits, health checks
 
 ### Current Security (Development)
 - Open security group (allows all traffic)
 - Basic authentication
 - No TLS encryption
 - Default Kubernetes RBAC
+- Application runs with non-root user
 
 ## 📊 Performance and Scaling
 
@@ -365,23 +505,28 @@ curl -X POST http://localhost:3000/api/posts \
 - **MongoDB Shards**: Add more shards for increased write capacity
 - **Mongos Instances**: Scale mongos for increased query capacity
 - **Kubernetes Nodes**: Add more worker nodes
-- **Application**: Scale Next.js instances
+- **Application**: Scale Twutter instances with `kubectl scale deployment twutter-app --replicas=5`
 
 ### Vertical Scaling
 - **Instance Sizes**: Upgrade from `m1.large` to `m1.xlarge`
 - **Storage**: Increase volume sizes in values.yaml
-- **Resources**: Adjust CPU/memory limits
+- **Resources**: Adjust CPU/memory limits in deployment
 
-### Optimization
+### Performance Optimization
 - **Connection Pooling**: Mongoose connection caching
 - **Indexing**: Proper database indexes for queries
 - **Caching**: React Query for client-side caching
 - **CDN**: Static asset delivery optimization
+- **Load Testing**: Built-in performance testing interface
+- **Bulk Operations**: Efficient batch processing APIs
 
 ## 🗑️ Cleanup
 
 ### Destroy Infrastructure
 ```bash
+# Remove Twutter application
+kubectl delete -k kube/twutter/
+
 # Remove MongoDB cluster
 helm uninstall mongo-sharded-cluster
 
@@ -394,9 +539,26 @@ terraform destroy
 
 ## 📚 Additional Resources
 
+### Documentation
 - [K3s Documentation](https://docs.k3s.io/)
 - [MongoDB Sharding Guide](https://docs.mongodb.com/manual/sharding/)
 - [OpenStack CSI Plugin](https://github.com/kubernetes/cloud-provider-openstack)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Terraform OpenStack Provider](https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest/docs)
 - [GitLab Terraform State](https://docs.gitlab.com/ee/user/infrastructure/terraform_state.html)
+
+### Project Documentation
+- [Terraform Infrastructure](docs/01_Terraform.md) - Complete infrastructure setup
+- [Kubernetes Deployment](docs/02_Kubernetes.md) - K8s and application deployment
+- [MongoDB Configuration](docs/03_MongoDB.md) - Database setup and sharding
+- [Twutter Application](docs/04_Twutter.md) - Application architecture and features
+
+### Key Features
+- **Full Automation**: One-command deployment of entire infrastructure
+- **GitLab Integration**: Automated CI/CD with container registry
+- **Load Testing**: Built-in performance testing interface
+- **MongoDB Sharding**: Production-ready database scaling
+- **Modern Stack**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Cloud Native**: Kubernetes, OpenStack, containerization
+- **Monitoring**: Comprehensive health checks and logging
+- **Scalability**: Horizontal and vertical scaling capabilities
