@@ -77,7 +77,7 @@ export async function GET(request: Request) {
       const username = query.substring(1);
       const user = await User.findOne({
         username: { $regex: new RegExp(`^${username}$`, "i") }
-      }).lean();
+      }).lean() as User | null;
 
       if (user) {
         // Find posts by this user
