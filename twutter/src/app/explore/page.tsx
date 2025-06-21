@@ -7,17 +7,33 @@ import Sidebar from "@/components/Sidebar";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import PostList from "@/components/PostList";
 
-interface SearchResult {
+interface PostComment {
   _id: string;
-  type: "post" | "user";
-  content?: string;
-  author?: string;
-  username?: string;
-  displayName?: string;
-  bio?: string;
-  createdAt?: string;
-  likes?: number;
+  content: string;
+  author: string;
+  createdAt: string;
 }
+
+interface PostSearchResult {
+  _id: string;
+  type: "post";
+  content: string;
+  author: string;
+  createdAt: string;
+  likes: number;
+  comments: PostComment[];
+}
+
+interface UserSearchResult {
+  _id: string;
+  type: "user";
+  username: string;
+  displayName: string;
+  bio?: string;
+  createdAt: string;
+}
+
+type SearchResult = PostSearchResult | UserSearchResult;
 
 function ExploreContent() {
   const searchParams = useSearchParams();
@@ -48,8 +64,8 @@ function ExploreContent() {
       const response = await fetch(`/api/search?q=${encodeURIComponent(searchTerm)}&limit=20`);
       const data = await response.json();
       
-      const allResults = [
-        ...data.users.map((user: any) => ({
+      const allResults: SearchResult[] = [
+        ...data.users.map((user: any): UserSearchResult => ({
           _id: user._id,
           type: "user" as const,
           username: user.username,
@@ -57,13 +73,14 @@ function ExploreContent() {
           bio: user.bio,
           createdAt: user.createdAt
         })),
-        ...data.posts.map((post: any) => ({
+        ...data.posts.map((post: any): PostSearchResult => ({
           _id: post._id,
           type: "post" as const,
-          content: post.content,
-          author: post.author,
-          createdAt: post.createdAt,
-          likes: post.likes
+          content: post.content || "",
+          author: post.author || "Unknown",
+          createdAt: post.createdAt || new Date().toISOString(),
+          likes: post.likes || 0,
+          comments: post.comments || []
         }))
       ];
       
@@ -81,7 +98,7 @@ function ExploreContent() {
       const response = await fetch(`/api/users?username=${encodeURIComponent(username)}`);
       const data = await response.json();
       
-      const userResults = data.users.map((user: any) => ({
+      const userResults: UserSearchResult[] = data.users.map((user: any): UserSearchResult => ({
         _id: user._id,
         type: "user" as const,
         username: user.username,
@@ -105,13 +122,14 @@ function ExploreContent() {
       const data = await response.json();
       
       if (data.posts && data.posts.length > 0) {
-        const postResults = data.posts.map((post: any) => ({
+        const postResults: PostSearchResult[] = data.posts.map((post: any): PostSearchResult => ({
           _id: post._id,
           type: "post" as const,
-          content: post.content,
-          author: post.author,
-          createdAt: post.createdAt,
-          likes: post.likes
+          content: post.content || "",
+          author: post.author || "Unknown",
+          createdAt: post.createdAt || new Date().toISOString(),
+          likes: post.likes || 0,
+          comments: post.comments || []
         }));
         
         setSearchResults(postResults);
@@ -199,6 +217,9 @@ function ExploreContent() {
                       </div>
                     </div>
                   ) : (
+                    activeTab === "posts" ? (
+                      <PostList posts={filteredResults.filter((r): r is PostSearchResult => r.type === 'post')} />
+                    ) : (
                     filteredResults.map((result) => (
                       <div
                         key={`${result.type}-${result._id}`}
@@ -224,30 +245,11 @@ function ExploreContent() {
                             </div>
                           </div>
                         ) : (
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                {result.author?.[0]?.toUpperCase() || "U"}
-                              </div>
-                              <span className="font-medium text-gray-900 dark:text-white">
-                                @{result.author}
-                              </span>
-                              <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {result.createdAt && new Date(result.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <div className="text-gray-900 dark:text-white">
-                              {result.content}
-                            </div>
-                            {result.likes !== undefined && (
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
-                                ❤️ {result.likes} likes
-                              </div>
-                            )}
-                          </div>
+                          null
                         )}
                       </div>
                     ))
+                    )
                   )}
                 </div>
               )}
