@@ -20,10 +20,14 @@ OpenStack Infrastructure
 │   ├── K3s v1.32.3+k3s1 Cluster
 │   └── Cinder CSI Plugin for Storage
 └── Application Layer
-    └── MongoDB Sharded Cluster
-        ├── Config Servers (3 replicas)
-        ├── Shards (2 clusters, 3 replicas each)
-        └── Mongos Routers (2 instances)
+    ├── MongoDB Sharded Cluster
+    │   ├── Config Servers (3 replicas)
+    │   ├── Shards (2 clusters, 3 replicas each)
+    │   └── Mongos Routers (2 instances)
+    └── Twutter Application
+        ├── Automatic deployment from GitLab registry
+        ├── Latest image from CI/CD pipeline
+        └── Integrated with MongoDB sharded cluster
 ```
 
 ## File Structure
@@ -42,12 +46,14 @@ OpenStack Infrastructure
 - **`instances.tf`** - Compute instances and floating IPs
 - **`provisioner-k3s.tf`** - K3s cluster setup and configuration
 - **`provisioner-mongodb.tf`** - MongoDB deployment via Helm
+- **`provisioner-twutter.tf`** - Twutter application deployment
 
 ### Supporting Files
 
 - **`setup_k3s/`** - K3s installation and configuration scripts
 - **`kube/manifests/`** - Kubernetes manifests for Cinder CSI
 - **`kube/mongo-sharded-cluster/`** - Helm chart for MongoDB
+- **`kube/twutter/`** - Twutter application deployment manifests
 - **`values.prod.yaml`** - MongoDB configuration values
 
 ## Configuration Details
@@ -151,6 +157,20 @@ production_flavor_name = "m1.xlarge"
 - **Storage Class**: `mongo-volume-xfs`
 - **MongoDB Version**: 8.0.9
 
+### Twutter Application Deployment (`provisioner-twutter.tf`)
+
+**Automatic Deployment:**
+- Deploys Twutter application from GitLab Container Registry
+- Uses latest image from CI/CD pipeline: `gitlab.reutlingen-university.de:5050/doebele/cbdt-projekt-3:latest`
+- Automatically configured with MongoDB sharded cluster connection
+- Exposed via NodePort service on port 30006
+
+**Deployment Features:**
+- **High Availability**: 3 replicas with health checks
+- **Resource Management**: CPU and memory limits configured
+- **Database Integration**: Connected to MongoDB sharded cluster
+- **External Access**: Available on any cluster node via NodePort
+
 ## Deployment Process
 
 ### Prerequisites
@@ -180,16 +200,19 @@ production_flavor_name = "m1.xlarge"
    - Local kubeconfig configured
    - Cinder CSI plugin deployed
    - MongoDB sharded cluster deployed
+   - Twutter application automatically deployed from GitLab
 
 3. **Verification:**
    ```bash
    kubectl get nodes
    kubectl get pods -A
+   kubectl get svc twutter-service
    ```
 
 ### Outputs
 
 - **Public IP Addresses**: List of all node floating IPs for external access
+- **Application Access**: Twutter available on `<node-ip>:30006`
 
 ## Security Considerations
 
@@ -197,12 +220,14 @@ production_flavor_name = "m1.xlarge"
 - **Open Security Group**: All ports open (0.0.0.0/0)
 - **SSH Key Authentication**: Required for node access
 - **K3s TLS**: Configured with floating IPs as SANs
+- **Application Security**: Twutter runs with non-root user and resource limits
 
 ### Recommendations
 - Restrict security group rules to specific ports
 - Use private networks where possible
 - Implement network policies in Kubernetes
 - Regular security updates for K3s and MongoDB
+- Monitor application logs for security events
 
 ## Scaling and Maintenance
 
@@ -220,6 +245,11 @@ production_flavor_name = "m1.xlarge"
 - Modify `values.prod.yaml` for shard/replica counts
 - Update storage sizes as needed
 - Consider resource limits for production workloads
+
+### Application Updates
+- Twutter automatically deploys latest image from GitLab CI/CD
+- Application updates triggered by GitLab pipeline
+- Zero-downtime deployments with rolling updates
 
 ## Troubleshooting
 
@@ -240,6 +270,11 @@ production_flavor_name = "m1.xlarge"
    - Check storage class availability
    - Review resource limits
 
+4. **Twutter Application Issues:**
+   - Check GitLab image availability
+   - Verify MongoDB connectivity
+   - Review application logs and health checks
+
 ### Debug Commands
 
 ```bash
@@ -254,6 +289,11 @@ kubectl get storageclass
 
 # Check MongoDB services
 kubectl get svc -l app=mongodb
+
+# Check Twutter application
+kubectl get pods -l app=twutter-app
+kubectl get svc twutter-service
+kubectl logs -l app=twutter-app
 ```
 
 ## Cost Optimization
@@ -280,6 +320,11 @@ kubectl get svc -l app=mongodb
 - Implement regular MongoDB backups
 - Consider volume snapshots for disaster recovery
 
+### Application Backup
+- Twutter application code and configuration in GitLab
+- Container images versioned in GitLab Container Registry
+- Infrastructure as Code enables quick recovery
+
 ## Future Enhancements
 
 ### Potential Improvements
@@ -289,3 +334,5 @@ kubectl get svc -l app=mongodb
 - Implement CI/CD pipeline integration
 - Add load balancer for external access
 - Consider multi-zone deployment for high availability
+- Implement blue-green deployments for Twutter
+- Add application monitoring and alerting
