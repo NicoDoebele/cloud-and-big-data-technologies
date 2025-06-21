@@ -73,45 +73,73 @@ export async function GET(request: Request) {
       users: []
     };
 
-    // Search posts if type is "posts" or "all"
-    if (type === "posts" || type === "all" || !type) {
-      const posts = await Post.find({
-        $or: [
-          { content: { $regex: query, $options: "i" } },
-          { author: { $regex: query, $options: "i" } }
-        ]
-      })
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .lean();
+    if (query.startsWith("@")) {
+      const username = query.substring(1);
+      const user = await User.findOne({
+        username: { $regex: new RegExp(`^${username}$`, "i") }
+      }).lean();
 
-      results.posts = posts.map((post: any) => ({
-        _id: post._id.toString(),
-        content: post.content,
-        author: post.author,
-        createdAt: post.createdAt,
-        likes: post.likes,
-        type: "post"
-      }));
-    }
+      if (user) {
+        // Find posts by this user
+        const posts = await Post.find({
+          author: { $regex: new RegExp(`^${user.username}$`, "i") },
+        })
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .lean();
+        
+        results.posts = posts.map((post: any) => ({
+          ...post,
+          _id: post._id.toString(),
+          type: "post"
+        }));
 
-    // Search users if type is "users" or "all"
-    if (type === "users" || type === "all" || !type) {
-      const users = await User.find({
-        $or: [
-          { username: { $regex: query, $options: "i" } },
-          { displayName: { $regex: query, $options: "i" } },
-          { bio: { $regex: query, $options: "i" } }
-        ]
-      })
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .lean();
+        // Also add the user to the results
+        results.users = [{
+          ...user,
+          type: "user"
+        }];
+      }
+    } else {
+      // Existing search logic for general queries
+      if (type === "posts" || type === "all" || !type) {
+        const posts = await Post.find({
+          $or: [
+            { content: { $regex: query, $options: "i" } },
+            { author: { $regex: query, $options: "i" } }
+          ]
+        })
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .lean();
 
-      results.users = users.map(user => ({
-        ...user,
-        type: "user"
-      }));
+        results.posts = posts.map((post: any) => ({
+          _id: post._id.toString(),
+          content: post.content,
+          author: post.author,
+          createdAt: post.createdAt,
+          likes: post.likes,
+          type: "post"
+        }));
+      }
+
+      if (type === "users" || type === "all" || !type) {
+        const users = await User.find({
+          $or: [
+            { username: { $regex: query, $options: "i" } },
+            { displayName: { $regex: query, $options: "i" } },
+            { bio: { $regex: query, $options: "i" } }
+          ]
+        })
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .lean();
+
+        results.users = users.map(user => ({
+          ...user,
+          type: "user"
+        }));
+      }
     }
 
     return NextResponse.json(results);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import FloatingActionButton from "@/components/FloatingActionButton";
@@ -37,6 +37,7 @@ type SearchResult = PostSearchResult | UserSearchResult;
 
 function ExploreContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,6 +86,10 @@ function ExploreContent() {
       ];
       
       setSearchResults(allResults);
+
+      if (data.users.length > 0 && data.posts.length === 0) {
+        setActiveTab("users");
+      }
     } catch (error) {
       console.error("Search error:", error);
     } finally {
@@ -223,7 +228,13 @@ function ExploreContent() {
                     filteredResults.map((result) => (
                       <div
                         key={`${result.type}-${result._id}`}
-                        className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
+                        className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => {
+                          if (result.type === 'user') {
+                            router.push(`/explore?q=@${result.username}`);
+                            setActiveTab("posts");
+                          }
+                        }}
                       >
                         {result.type === "user" ? (
                           <div className="flex items-center space-x-3">

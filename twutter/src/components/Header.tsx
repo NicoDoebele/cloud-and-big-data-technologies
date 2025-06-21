@@ -90,10 +90,10 @@ export default function Header() {
   };
 
   const handleResultClick = (result: SearchResult) => {
-    if (result.type === "user") {
-      router.push(`/explore?user=${result.username}`);
+    if (result.type === "user" && result.username) {
+      router.push(`/explore?q=@${encodeURIComponent(result.username)}`);
     } else {
-      router.push(`/explore?post=${result._id}`);
+      router.push(`/explore?q=${encodeURIComponent(result.content || '')}`);
     }
     setShowSearchResults(false);
     setSearchQuery("");
