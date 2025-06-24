@@ -48,6 +48,11 @@ kubectl delete -k .
 Update to newest build:
 
 ```bash
+$ kubectl rollout status deployment/twutter-app
+deployment "twutter-app" successfully rolled out
+```
+
+```bash
 kubectl rollout restart deployment/twutter-app
 ```
 
@@ -65,6 +70,12 @@ kubectl rollout restart deployment/twutter-app
 The application will be accessible on any cluster node at port 30006:
 ```
 http://<node-ip>:30006
+```
+
+Encode the pull secret
+
+```bash
+cat kube/twutter/dockerconfig.json | base64  | tr -d '\n'
 ```
 
 ## Scaling

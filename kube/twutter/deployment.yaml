@@ -14,6 +14,8 @@ spec:
       labels:
         app: twutter-app
     spec:
+      imagePullSecrets:
+      - name: gitlab-registry-secret
       containers:
       - name: twutter-app
         image: gitlab.reutlingen-university.de:5050/doebele/cbdt-projekt-3:latest
