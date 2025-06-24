@@ -14,30 +14,63 @@ interface User {
   following: string[];
 }
 
+interface PaginationInfo {
+  total: number;
+  limit: number;
+  skip: number;
+  hasMore: boolean;
+}
+
 export default function WhoToFollow() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    total: 0,
+    limit: 10,
+    skip: 0,
+    hasMore: false,
+  });
+
+  const fetchUsers = async (skip = 0, append = false) => {
+    try {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      
+      const response = await fetch(`/api/users?limit=10&skip=${skip}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+      const data = await response.json();
+      
+      if (append) {
+        setUsers(prev => [...prev, ...data.users]);
+      } else {
+        setUsers(data.users || []);
+      }
+      
+      setPagination(data.pagination);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/users?limit=10");
-        if (!response.ok) {
-          throw new Error("Failed to fetch users");
-        }
-        const data = await response.json();
-        setUsers(data.users || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUsers();
   }, []);
+
+  const handleLoadMore = () => {
+    if (!loadingMore && pagination.hasMore) {
+      fetchUsers(pagination.skip + pagination.limit, true);
+    }
+  };
 
   const handleFollow = async (userId: string) => {
     // TODO: Implement follow functionality
@@ -95,11 +128,11 @@ export default function WhoToFollow() {
   }
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-4">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+    <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-4 h-[600px] flex flex-col">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">
         Who to follow
       </h2>
-      <div className="space-y-3">
+      <div className="space-y-3 flex-1 overflow-y-auto overflow-x-hidden pr-2 scrollbar-custom">
         {users.map((user) => (
           <div key={user._id} className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -129,9 +162,13 @@ export default function WhoToFollow() {
           </div>
         ))}
       </div>
-      {users.length >= 10 && (
-        <button className="w-full text-left text-sm text-blue-500 hover:text-blue-600 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          Show more
+      {pagination.hasMore && (
+        <button 
+          onClick={handleLoadMore}
+          disabled={loadingMore}
+          className="w-full text-left text-sm text-blue-500 hover:text-blue-600 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+        >
+          {loadingMore ? "Loading..." : "Show more"}
         </button>
       )}
     </div>
