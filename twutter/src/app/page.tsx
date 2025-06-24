@@ -64,7 +64,7 @@ export default function Home() {
                       #NextJS
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      50.5K posts
+                      50.6K posts
                     </div>
                   </div>
                 </div>
