@@ -1,3 +1,7 @@
+stages:
+  - build
+  - deploy
+
 build_and_push_docker_image:
   # Use a standard Docker image for the job
   image: docker:latest
@@ -40,3 +44,37 @@ build_and_push_docker_image:
   # This job will only run when changes are pushed to the 'main' branch.
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
+
+deploy_to_host:
+  image: alpine:latest
+  stage: deploy
+  variables:
+    DEPLOYMENT_HOST_HOSTNAME: $DEPLOYMENT_HOST_HOSTNAME
+    DEPLOYMENT_HOST_IP: $DEPLOYMENT_HOST_IP
+    DEPLOYMENT_HOST_SSH_KEY: $DEPLOYMENT_HOST_SSH_KEY
+  script:
+    - apk add --no-cache openssh
+    - chmod 600 "$DEPLOYMENT_HOST_SSH_KEY"
+    - |
+      ssh -o StrictHostKeyChecking=no -i "$DEPLOYMENT_HOST_SSH_KEY" "$DEPLOYMENT_HOST_HOSTNAME"@${DEPLOYMENT_HOST_IP} '
+        # Check if the cluster is configured
+        if ! kubectl cluster-info >/dev/null 2>&1; then
+          echo "Cannot connect to Kubernetes cluster. Skipping deployment."
+          exit 0
+        fi
+        
+        # Check if twutter deployment exists
+        if kubectl get deployment twutter-app >/dev/null 2>&1; then
+          echo "Twutter deployment found. Restarting..."
+          kubectl rollout restart deployment/twutter-app
+          kubectl rollout status deployment/twutter-app --timeout=300s
+          echo "Twutter deployment restarted successfully"
+        else
+          echo "Twutter deployment not found. Skipping deployment."
+          exit 0
+        fi
+      '
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - build_and_push_docker_image
