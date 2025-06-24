@@ -1,0 +1,427 @@
+{
+    "type": "StatsResult",
+    "value": {
+        "shardingVersion": {
+            "_id": {
+                "$numberInt": "1"
+            },
+            "clusterId": {
+                "$oid": "6855de655b01c99958349203"
+            }
+        },
+        "shards": [
+            {
+                "_id": "rsShard1",
+                "host": "rsShard1/mongo-shard1-0.mongo-shard1-headless.default.svc.cluster.local:27017,mongo-shard1-1.mongo-shard1-headless.default.svc.cluster.local:27017,mongo-shard1-2.mongo-shard1-headless.default.svc.cluster.local:27017",
+                "state": {
+                    "$numberInt": "1"
+                },
+                "topologyTime": {
+                    "$timestamp": {
+                        "t": 1750458158,
+                        "i": 9
+                    }
+                },
+                "replSetConfigVersion": {
+                    "$numberLong": "-1"
+                }
+            },
+            {
+                "_id": "rsShard2",
+                "host": "rsShard2/mongo-shard2-0.mongo-shard2-headless.default.svc.cluster.local:27017,mongo-shard2-1.mongo-shard2-headless.default.svc.cluster.local:27017,mongo-shard2-2.mongo-shard2-headless.default.svc.cluster.local:27017",
+                "state": {
+                    "$numberInt": "1"
+                },
+                "topologyTime": {
+                    "$timestamp": {
+                        "t": 1750458167,
+                        "i": 9
+                    }
+                },
+                "replSetConfigVersion": {
+                    "$numberLong": "-1"
+                }
+            }
+        ],
+        "active mongoses": [
+            {
+                "8.0.9": {
+                    "$numberInt": "2"
+                }
+            }
+        ],
+        "autosplit": {
+            "Currently enabled": "yes"
+        },
+        "balancer": {
+            "Currently enabled": "yes",
+            "Currently running": "no",
+            "Failed balancer rounds in last 5 attempts": {
+                "$numberInt": "0"
+            },
+            "Migration Results for the last 24 hours": "No recent migrations"
+        },
+        "shardedDataDistribution": [
+            {
+                "ns": "twutter.comments",
+                "shards": [
+                    {
+                        "shardName": "rsShard2",
+                        "numOrphanedDocs": {
+                            "$numberInt": "0"
+                        },
+                        "numOwnedDocuments": {
+                            "$numberInt": "8"
+                        },
+                        "ownedSizeBytes": {
+                            "$numberInt": "936"
+                        },
+                        "orphanedSizeBytes": {
+                            "$numberInt": "0"
+                        }
+                    }
+                ]
+            },
+            {
+                "ns": "twutter.users",
+                "shards": [
+                    {
+                        "shardName": "rsShard1",
+                        "numOrphanedDocs": {
+                            "$numberInt": "0"
+                        },
+                        "numOwnedDocuments": {
+                            "$numberInt": "19"
+                        },
+                        "ownedSizeBytes": {
+                            "$numberInt": "4047"
+                        },
+                        "orphanedSizeBytes": {
+                            "$numberInt": "0"
+                        }
+                    },
+                    {
+                        "shardName": "rsShard2",
+                        "numOrphanedDocs": {
+                            "$numberInt": "0"
+                        },
+                        "numOwnedDocuments": {
+                            "$numberInt": "21"
+                        },
+                        "ownedSizeBytes": {
+                            "$numberInt": "4494"
+                        },
+                        "orphanedSizeBytes": {
+                            "$numberInt": "0"
+                        }
+                    }
+                ]
+            },
+            {
+                "ns": "config.system.sessions",
+                "shards": [
+                    {
+                        "shardName": "rsShard1",
+                        "numOrphanedDocs": {
+                            "$numberInt": "0"
+                        },
+                        "numOwnedDocuments": {
+                            "$numberInt": "205"
+                        },
+                        "ownedSizeBytes": {
+                            "$numberInt": "27880"
+                        },
+                        "orphanedSizeBytes": {
+                            "$numberInt": "0"
+                        }
+                    }
+                ]
+            },
+            {
+                "ns": "twutter.posts",
+                "shards": [
+                    {
+                        "shardName": "rsShard1",
+                        "numOrphanedDocs": {
+                            "$numberInt": "0"
+                        },
+                        "numOwnedDocuments": {
+                            "$numberInt": "5062"
+                        },
+                        "ownedSizeBytes": {
+                            "$numberInt": "860540"
+                        },
+                        "orphanedSizeBytes": {
+                            "$numberInt": "0"
+                        }
+                    },
+                    {
+                        "shardName": "rsShard2",
+                        "numOrphanedDocs": {
+                            "$numberInt": "0"
+                        },
+                        "numOwnedDocuments": {
+                            "$numberInt": "5098"
+                        },
+                        "ownedSizeBytes": {
+                            "$numberInt": "6652890"
+                        },
+                        "orphanedSizeBytes": {
+                            "$numberInt": "0"
+                        }
+                    }
+                ]
+            }
+        ],
+        "databases": [
+            {
+                "database": {
+                    "_id": "clusterConfig",
+                    "primary": "rsShard2",
+                    "version": {
+                        "uuid": {
+                            "$binary": {
+                                "base64": "nOsGo32rQZSvuc0pTb4SHg==",
+                                "subType": "04"
+                            }
+                        },
+                        "timestamp": {
+                            "$timestamp": {
+                                "t": 1750458175,
+                                "i": 2
+                            }
+                        },
+                        "lastMod": {
+                            "$numberInt": "1"
+                        }
+                    }
+                },
+                "collections": {}
+            },
+            {
+                "database": {
+                    "_id": "config",
+                    "primary": "config",
+                    "partitioned": true
+                },
+                "collections": {
+                    "config.system.sessions": {
+                        "shardKey": {
+                            "_id": {
+                                "$numberInt": "1"
+                            }
+                        },
+                        "unique": false,
+                        "balancing": true,
+                        "chunkMetadata": [
+                            {
+                                "shard": "rsShard1",
+                                "nChunks": {
+                                    "$numberInt": "1"
+                                }
+                            }
+                        ],
+                        "chunks": [
+                            {
+                                "min": {
+                                    "_id": {
+                                        "$minKey": 1
+                                    }
+                                },
+                                "max": {
+                                    "_id": {
+                                        "$maxKey": 1
+                                    }
+                                },
+                                "on shard": "rsShard1",
+                                "last modified": {
+                                    "$timestamp": {
+                                        "t": 1,
+                                        "i": 0
+                                    }
+                                }
+                            }
+                        ],
+                        "tags": []
+                    }
+                }
+            },
+            {
+                "database": {
+                    "_id": "twutter",
+                    "primary": "rsShard2",
+                    "version": {
+                        "uuid": {
+                            "$binary": {
+                                "base64": "KXWknRBXRl2JZmJ37+fTeA==",
+                                "subType": "04"
+                            }
+                        },
+                        "timestamp": {
+                            "$timestamp": {
+                                "t": 1750458172,
+                                "i": 2
+                            }
+                        },
+                        "lastMod": {
+                            "$numberInt": "1"
+                        }
+                    }
+                },
+                "collections": {
+                    "twutter.comments": {
+                        "shardKey": {
+                            "post_id": {
+                                "$numberInt": "1"
+                            }
+                        },
+                        "unique": false,
+                        "balancing": true,
+                        "chunkMetadata": [
+                            {
+                                "shard": "rsShard2",
+                                "nChunks": {
+                                    "$numberInt": "1"
+                                }
+                            }
+                        ],
+                        "chunks": [
+                            {
+                                "min": {
+                                    "post_id": {
+                                        "$minKey": 1
+                                    }
+                                },
+                                "max": {
+                                    "post_id": {
+                                        "$maxKey": 1
+                                    }
+                                },
+                                "on shard": "rsShard2",
+                                "last modified": {
+                                    "$timestamp": {
+                                        "t": 1,
+                                        "i": 0
+                                    }
+                                }
+                            }
+                        ],
+                        "tags": []
+                    },
+                    "twutter.posts": {
+                        "shardKey": {
+                            "_id": "hashed"
+                        },
+                        "unique": false,
+                        "balancing": true,
+                        "chunkMetadata": [
+                            {
+                                "shard": "rsShard1",
+                                "nChunks": {
+                                    "$numberInt": "1"
+                                }
+                            },
+                            {
+                                "shard": "rsShard2",
+                                "nChunks": {
+                                    "$numberInt": "1"
+                                }
+                            }
+                        ],
+                        "chunks": [
+                            {
+                                "min": {
+                                    "_id": {
+                                        "$minKey": 1
+                                    }
+                                },
+                                "max": {
+                                    "_id": {
+                                        "$numberLong": "0"
+                                    }
+                                },
+                                "on shard": "rsShard2",
+                                "last modified": {
+                                    "$timestamp": {
+                                        "t": 1,
+                                        "i": 0
+                                    }
+                                }
+                            },
+                            {
+                                "min": {
+                                    "_id": {
+                                        "$numberLong": "0"
+                                    }
+                                },
+                                "max": {
+                                    "_id": {
+                                        "$maxKey": 1
+                                    }
+                                },
+                                "on shard": "rsShard1",
+                                "last modified": {
+                                    "$timestamp": {
+                                        "t": 1,
+                                        "i": 1
+                                    }
+                                }
+                            }
+                        ],
+                        "tags": []
+                    },
+                    "twutter.users": {
+                        "shardKey": {
+                            "_id": "hashed"
+                        },
+                        "unique": false,
+                        "balancing": true,
+                        "chunkMetadata": [
+                            {
+                                "shard": "rsShard1",
+                                "nChunks": {
+                                    "$numberInt": "1"
+                                }
+                            },
+                            {
+                                "shard": "rsShard2",
+                                "nChunks": {
+                                    "$numberInt": "1"
+                                }
+                            }
+                        ],
+                        "chunks": [
+                            {
+                                "min": {
+                                    "_id": {
+                                        "$minKey": 1
+                                    }
+                                },
+                                "max": {
+                                    "_id": {
+                                        "$numberLong": "0"
+                                    }
+                                },
+                                "on shard": "rsShard2",
+                                "last modified": {
+                                    "$timestamp": {
+                                        "t": 1,
+                                        "i": 0
+                                    }
+                                }
+                            },
+                            {
+                                "min": {
+                                    "_id": {
+                                        "$numberLong": "0"
+                                    }
+                                }
+                            }
+                        ],
+                        "tags": []
+                    }
+                }
+            }
+        ]
+    }
+}
