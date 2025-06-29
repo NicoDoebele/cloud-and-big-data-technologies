@@ -14,10 +14,14 @@ This documentation was initially written by the project team, with visual improv
 ## AI-Assisted Documentation Creation
 The following files were created with the mentioned AI assistance:
 - [README.md](../README.md) - Project overview and setup instructions
-- [01_terraform.md](01_terraform.md) - Terraform infrastructure documentation
-- [02_kubernetes.md](02_kubernetes.md) - Kubernetes cluster documentation
-- [03_mongodb.md](03_mongodb.md) - MongoDB setup and configuration documentation
-- [04_twutter.md](04_twutter.md) - Twutter application documentation
+- [01_Terraform.md](01_Terraform.md) - Terraform infrastructure documentation
+- [02_Kubernetes.md](02_Kubernetes.md) - Kubernetes cluster documentation
+- [03_MongoDB.md](03_MongoDB.md) - MongoDB setup and configuration documentation
+- [04_Twutter.md](04_Twutter.md) - Twutter application documentation
+- [05_Testing.md](05_Testing.md) - Testing framework and load testing documentation
+- [06_Cleanup.md](06_Cleanup.md) - Infrastructure cleanup procedures
+- [07_Markdowns.md](07_Markdowns.md) - Project markdown files overview
+- [08_OLD.md](08_OLD.md) - Legacy documentation
 
 ---
-*Last updated: June 19, 2025*
+*Last updated: June 29, 2025*
