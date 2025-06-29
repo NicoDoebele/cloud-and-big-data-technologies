@@ -8,20 +8,26 @@ data:
   auto-shard.sh: |
 {{ .Files.Get "scripts/auto-shard.sh" | indent 4 }}
   init-configserver.sh: |
+    # Start MongoDB config server with replica set configuration
     mongod --configsvr --replSet {{ .Values.configServer.replicaSetName }} --dbpath /data/db --port {{ .Values.configServer.port }} --bind_ip_all --keyFile /etc/mongo-secrets/mongo-keyfile --auth &
 
+    # Store the MongoDB process ID for later cleanup
     MONGOD_PID=$!
 
+    # Wait for MongoDB to be ready to accept connections
     until mongosh --eval "db.adminCommand('ping').ok" | grep -q "1"; do
       sleep 5
     done
 
+    # Check if replica set is already initialized to avoid duplicate initialization
     if mongosh --eval "rs.status().ok" | grep -q "1"; then
       echo "Replica set $REPLICA_SET_ID already initialized"
       exit 0
     fi
 
+    # Only the first pod (mongo-csrs-0) should initialize the replica set
     if [ "$HOSTNAME" == "mongo-csrs-0" ]; then
+      # Initialize the config server replica set with the first member
       mongosh --eval '
         rs.initiate({
           _id: "{{ .Values.configServer.replicaSetName }}",
@@ -32,14 +38,17 @@ data:
         });
       '
 
+      # Wait for replica set to be fully initialized
       until mongosh --eval "rs.status().ok" | grep -q "1"; do
           sleep 5
       done
 
+      # Wait for a primary member to be elected
       until mongosh --eval "rs.status().members.some(m => m.stateStr === 'PRIMARY')" | grep -q "true"; do
           sleep 5
       done
 
+      # If this node is the primary, create the root user
       if mongosh --eval "rs.isMaster().ismaster" | grep -q "true"; then
         mongosh --eval '
           db.getSiblingDB("admin").createUser({
@@ -52,10 +61,14 @@ data:
         exit 1
       fi
     else
+      # For non-first pods, add themselves to the existing replica set
+      # Build the full list of config server hostnames
       FULL_CONFIG_HOSTNAME="{{ range $index, $e := until (.Values.replicaCount.configServers | int) }}mongo-csrs-{{ $index }}.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}{{ if ne $index (sub ($.Values.replicaCount.configServers | int) 1) }},{{ end }}{{ end }}"
 
+      # Get this pod's own hostname
       OWN_HOSTNAME="${HOSTNAME}.{{ .Values.configServer.headlessServiceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.configServer.port }}"
 
+      # Add this node to the replica set using authentication
       mongosh --host "$FULL_CONFIG_HOSTNAME" \
         -u "$MONGO_INITDB_ROOT_USERNAME" \
         -p "$MONGO_INITDB_ROOT_PASSWORD" \
@@ -63,4 +76,5 @@ data:
         --eval "rs.add('$OWN_HOSTNAME')"
     fi
 
+    # Wait for the MongoDB process to finish (should run indefinitely)
     wait $MONGOD_PID

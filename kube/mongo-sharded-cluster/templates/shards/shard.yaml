@@ -57,20 +57,29 @@ spec:
             - bash
             - -c
             - |
+              # Wait for MongoDB config server replica set to be ready before starting shard
+              # Construct the config server hostname using Kubernetes DNS
               CONFIG_SVR_HOST="mongo-csrs-0.{{ $.Values.configServer.headlessServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.configServer.port }}"
 
+              # Retry configuration - wait up to 5 minutes (30 * 10 seconds)
               MAX_RETRIES=30
               RETRY_COUNT=0
               SUCCESS=false
+              
+              # Poll the config server until it's ready or max retries reached
               until [ $RETRY_COUNT -ge $MAX_RETRIES ]; do
                 RETRY_COUNT=$((RETRY_COUNT+1))
+                # Check if replica set is healthy by querying rs.status().ok
+                # Returns 1 if healthy, anything else if not ready
                 if mongosh --quiet --host "$CONFIG_SVR_HOST" --eval 'rs.status().ok' --username "$MONGO_USERNAME" --password "$MONGO_PASSWORD" --authenticationDatabase "admin" 2>/dev/null | grep -q "1"; then
                   SUCCESS=true
                   break
                 fi
+                # Wait 10 seconds before next retry
                 sleep 10
               done
 
+              # Exit with failure if config server never became ready
               if [ "$SUCCESS" != "true" ]; then
                 exit 1
               fi
@@ -97,19 +106,27 @@ spec:
                   - bash
                   - -c
                   - |
+                   # Only run replica set initialization on the last pod (highest ordinal)
+                   # This ensures only one pod attempts to initialize the replica set
                    if [ "$HOSTNAME" != "{{ printf "%s%d" $.Values.sharding.baseName $index }}-{{ sub $replicas 1 }}" ]; then
                       exit 0
                     fi
 
+                    # Wait for MongoDB to be ready to accept connections
+                    # This ensures the database is fully started before attempting replica set operations
                     until mongosh --eval "db.adminCommand('ping').ok" | grep -q "1"; do
                         sleep 5
                     done
 
+                    # Check if replica set is already initialized to avoid duplicate initialization
+                    # This prevents errors when pods restart and try to re-initialize an existing replica set
                     if mongosh --eval "rs.status().ok" | grep -q "1"; then
                         echo "Replica set already initialized"
                         exit 0
                     fi
 
+                    # Initialize the replica set with all members
+                    # Each member is configured with its Kubernetes DNS hostname and port
                     mongosh --eval '
                       rs.initiate({
                         _id: "{{ printf "%s%d" $.Values.sharding.replicaSetBaseName $index }}",

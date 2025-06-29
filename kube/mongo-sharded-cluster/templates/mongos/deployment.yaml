@@ -31,20 +31,29 @@ spec:
             - bash
             - -c
             - |
+              # Wait for MongoDB config server replica set to be ready before starting mongos
+              # Construct the config server hostname using Kubernetes DNS
               CONFIG_SVR_HOST="mongo-csrs-0.{{ .Values.configServer.headlessServiceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.configServer.port }}"
 
+              # Retry configuration - wait up to 5 minutes (30 * 10 seconds)
               MAX_RETRIES=30
               RETRY_COUNT=0
               SUCCESS=false
+              
+              # Poll the config server until it's ready or max retries reached
               until [ $RETRY_COUNT -ge $MAX_RETRIES ]; do
                 RETRY_COUNT=$((RETRY_COUNT+1))
+                # Check if replica set is healthy by querying rs.status().ok
+                # Returns 1 if healthy, anything else if not ready
                 if mongosh --quiet --host "$CONFIG_SVR_HOST" --eval 'rs.status().ok' --username "$MONGO_USERNAME" --password "$MONGO_PASSWORD" --authenticationDatabase "admin" 2>/dev/null | grep -q "1"; then
                   SUCCESS=true
                   break
                 fi
+                # Wait 10 seconds before next retry
                 sleep 10
               done
 
+              # Exit with failure if config server never became ready
               if [ "$SUCCESS" != "true" ]; then
                 exit 1
               fi
